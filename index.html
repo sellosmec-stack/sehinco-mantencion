@@ -1,0 +1,2999 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Hoja de Ingreso Digital — SEHINCO</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#F2F3F5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ingreso Sehinco">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<style>
+  :root{
+    --bg:#F2F3F5; --bg-elevated:#FFFFFF; --surface:#FFFFFF; --surface-2:#EEF0F3; --surface-3:#E4E7EB;
+    --border:#DDE1E6; --border-strong:#C6CBD2;
+    --text:#181B1F; --text-dim:#4B5158; --text-faint:#6B7280;
+    --accent:#FF7A33; --accent-strong:#B84A00; --accent-dim:rgba(255,122,51,.14);
+    --on-accent:#231400;
+    --brand:#0D7A54; --brand-dim:rgba(13,122,84,.12); --on-brand:#FFFFFF;
+    --danger:#D32F2F; --danger-dim:rgba(211,47,47,.10);
+    --shadow-color: rgba(20,24,28,.10);
+    --radius-sm:8px; --radius:14px; --radius-lg:20px; --radius-full:999px;
+    --shadow-sm:0 1px 3px var(--shadow-color), 0 1px 2px rgba(20,24,28,.06); --shadow-md:0 10px 26px rgba(20,24,28,.16);
+    --mono: ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",Consolas,monospace;
+    --sans: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--sans); }
+  body{ padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  ::selection{ background:var(--accent-dim); }
+  ::-webkit-scrollbar{ width:0; height:0; }
+  svg.icon{ width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+
+  /* ================= APP BAR ================= */
+  .appbar{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:16px 18px 14px; }
+  .appbar-brand{ display:flex; align-items:center; gap:11px; }
+  .appbar-emblem{ width:40px; height:40px; flex-shrink:0; object-fit:contain; border-radius:8px; }
+  .appbar-co b{ display:block; font-size:13px; letter-spacing:.01em; }
+  .appbar-co span{ display:block; font-family:var(--mono); font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; margin-top:1px; }
+  .conn-pill{ display:flex; align-items:center; gap:5px; font-family:var(--mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--brand); }
+  .conn-pill .dot{ width:6px; height:6px; border-radius:50%; background:var(--brand); box-shadow:0 0 0 3px var(--brand-dim); }
+  .conn-pill.offline{ color:var(--danger); }
+  .conn-pill.offline .dot{ background:var(--danger); box-shadow:0 0 0 3px var(--danger-dim); }
+
+  /* ================= SECTION-JUMP NAV ================= */
+  .section-nav{
+    position:sticky; top:0; z-index:30; display:flex; gap:7px; overflow-x:auto; padding:10px 14px;
+    background:rgba(18,21,26,.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--border); scrollbar-width:none;
+  }
+  .section-nav::-webkit-scrollbar{ display:none; }
+  .section-nav button{
+    flex-shrink:0; display:flex; align-items:center; gap:6px; padding:8px 13px; border-radius:var(--radius-full);
+    border:1px solid var(--border); background:var(--surface); color:var(--text-dim); font-size:12px; font-weight:600;
+    font-family:var(--sans); cursor:pointer; white-space:nowrap; transition:.15s ease;
+  }
+  .section-nav button svg{ width:14px; height:14px; }
+  .section-nav button.active{ background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+
+  /* ================= LAYOUT / CARDS ================= */
+  .container{ max-width:640px; margin:0 auto; padding:2px 0 30px; }
+  .card{ background:var(--surface); margin:14px 12px; border-radius:var(--radius-lg); border:1px solid var(--border); overflow:hidden; box-shadow:var(--shadow-sm); scroll-margin-top:64px; }
+  .card-head{ display:flex; align-items:center; gap:10px; padding:15px 17px; border-bottom:1px solid var(--border); cursor:pointer; user-select:none; }
+  .card-head .card-icon{ width:30px; height:30px; border-radius:9px; background:var(--accent-dim); color:var(--accent); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .card-head h2{ margin:0; font-size:15.5px; font-weight:800; letter-spacing:.005em; flex:1; }
+  .card-head .chev{ color:var(--text-faint); transition:transform .2s; }
+  .card-head .chev svg{ width:16px; height:16px; }
+  .card-body{ padding:16px 17px 18px; display:grid; gap:12px; }
+  .card.collapsed .card-body{ display:none; }
+  .card.collapsed .chev{ transform:rotate(-90deg); }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+  @media (max-width:420px){ .grid2{ grid-template-columns:1fr; } }
+
+  .field{ display:flex; flex-direction:column; gap:5px; }
+  .field.span2{ grid-column:1/-1; }
+  label{ font-size:12.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; font-family:var(--mono); font-weight:700; }
+  input[type=text], input[type=number], input[type=date], select, textarea{
+    background:var(--surface-2); border:1px solid var(--border-strong); color:var(--text);
+    border-radius:10px; padding:12px 13px; font-size:16px; font-family:var(--mono); width:100%; min-height:46px;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  input[type=text], textarea{ text-transform:uppercase; }
+  input[type=text]::placeholder, textarea::placeholder{ text-transform:none; }
+  textarea{ font-family:var(--sans); min-height:64px; resize:vertical; }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-dim); }
+  /* Ejemplos (placeholder): muy claros y en cursiva para no confundirlos con texto ya escrito */
+  input::placeholder, textarea::placeholder{ color:#B4BBC5; font-style:italic; font-weight:400; opacity:1; }
+  /* Campo con contenido real: fondo blanco, borde marcado y letra oscura más gruesa (distinto del campo vacío con ejemplo) */
+  input[placeholder]:not([placeholder=""]):not(:placeholder-shown),
+  textarea[placeholder]:not([placeholder=""]):not(:placeholder-shown){
+    background:#FFFFFF; border-color:#7C8695; color:#0B0D10; font-weight:700;
+  }
+  input[placeholder]:not([placeholder=""]):not(:placeholder-shown):focus,
+  textarea[placeholder]:not([placeholder=""]):not(:placeholder-shown):focus{ border-color:var(--accent); }
+  .input-error{ border-color:var(--danger) !important; box-shadow:0 0 0 3px var(--danger-dim) !important; }
+  .hint{ font-size:13px; color:var(--text-dim); line-height:1.55; }
+
+  /* ================= CHECKLIST ================= */
+  .check-row{ display:flex; align-items:center; gap:11px; padding:10px 0; border-bottom:1px solid var(--border); }
+  .check-row:last-of-type{ border-bottom:none; }
+  .check-row input[type=checkbox]{ width:20px; height:20px; accent-color:var(--brand); flex-shrink:0; }
+  .check-row span{ flex:1; font-size:14px; text-transform:uppercase; }
+  .check-row .del-btn{ background:none; border:none; color:var(--text-faint); cursor:pointer; padding:4px; display:flex; }
+  .add-item{ display:flex; gap:8px; margin-top:2px; flex-wrap:wrap; }
+  .add-item input{ flex:1; min-width:140px; }
+  .btn-mini{ background:var(--surface-3); border:1px solid var(--border-strong); color:var(--text); border-radius:10px; padding:0 15px; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; }
+  .btn-mini:active{ transform:scale(.96); }
+  .empty-hint{ color:var(--text-faint); font-size:13px; padding:6px 0; }
+
+  /* ================= COMPONENT SWITCH ================= */
+  .comp-switch{ display:flex; background:var(--surface-2); border-radius:12px; padding:4px; gap:4px; }
+  .comp-switch button{
+    flex:1; padding:10px 6px; border:none; border-radius:9px; background:transparent; color:var(--text-dim);
+    font-family:var(--sans); font-weight:700; font-size:13px; cursor:pointer; transition:.15s;
+  }
+  .comp-switch button.active{ background:var(--accent); color:var(--on-accent); box-shadow:var(--shadow-sm); }
+  fieldset{ border:1px solid var(--border); border-radius:12px; padding:12px 13px 14px; margin:0; }
+  legend{ font-family:var(--mono); font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--accent-strong); padding:0 7px; font-weight:800; }
+  .radio-row{ display:flex; gap:18px; padding-top:3px; flex-wrap:wrap; }
+  .radio-row label{ display:flex; align-items:center; gap:7px; text-transform:none; font-family:var(--sans); font-size:14px; color:var(--text); }
+  .radio-row input{ width:18px; height:18px; accent-color:var(--accent); }
+  .obs-flag{ display:flex; align-items:center; gap:9px; padding:7px 0; flex-wrap:wrap; }
+  .obs-flag input[type=checkbox]{ width:18px; height:18px; accent-color:var(--danger); }
+  .obs-flag span{ font-size:13.5px; text-transform:uppercase; }
+  .obs-flag input[type=text]{ margin-left:auto; max-width:150px; }
+
+  /* ================= REPUESTOS ================= */
+  .repuesto-row{ display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); font-size:13.5px; }
+  .repuesto-row:last-of-type{ border-bottom:none; }
+  .repuesto-row .rr-text{ flex:1; min-width:0; }
+  .repuesto-row .rr-text b{ display:block; font-size:13.5px; }
+  .repuesto-row .rr-text span{ color:var(--text-dim); font-size:12.5px; }
+  .repuesto-row .rr-qty{ font-family:var(--mono); color:var(--text-dim); font-size:12.5px; }
+  .repuesto-row .del-btn{ background:none; border:none; color:var(--text-faint); cursor:pointer; padding:4px; display:flex; }
+
+  /* ================= TOGGLE SWITCH ================= */
+  .toggle-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .toggle-row span{ font-size:14px; font-weight:600; }
+  .switch{ position:relative; width:46px; height:27px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch .track{ position:absolute; inset:0; background:var(--surface-3); border:1px solid var(--border-strong); border-radius:20px; transition:.2s; cursor:pointer; }
+  .switch .track::after{ content:''; position:absolute; width:19px; height:19px; left:3px; top:3px; background:var(--text-dim); border-radius:50%; transition:.2s; }
+  .switch input:checked + .track{ background:var(--accent); border-color:var(--accent); }
+  .switch input:checked + .track::after{ transform:translateX(19px); background:var(--on-accent); }
+
+  /* ================= TABLAS ELÉCTRICAS ================= */
+  .aislacion-row{ border:1px solid var(--border); border-radius:12px; padding:12px 13px; margin-bottom:10px; background:var(--surface-2); }
+  .aislacion-row:last-child{ margin-bottom:0; }
+  .aislacion-row-label{ font-family:var(--mono); font-weight:800; font-size:13.5px; color:var(--text); margin-bottom:9px; }
+  .prueba-grid{ display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  .mf{ display:flex; flex-direction:column; gap:3px; }
+  .mf label{ font-size:10px; color:var(--text-faint); font-family:var(--mono); text-transform:uppercase; letter-spacing:.03em; }
+  .mf input{ min-height:38px; padding:6px 8px; font-size:13.5px; border-radius:7px; }
+  .conclusion-radios{ display:flex; gap:16px; flex-wrap:wrap; }
+  .conclusion-radios label{ display:flex; align-items:center; gap:7px; font-size:13.5px; font-family:var(--sans); }
+  .conclusion-radios input{ width:18px; height:18px; accent-color:var(--accent); }
+  .subhead{ font-family:var(--mono); font-size:11.5px; color:var(--accent-strong); text-transform:uppercase; letter-spacing:.05em; font-weight:800; margin-top:4px; }
+
+  /* ================= FOTOS ================= */
+  .foto-slots{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+  @media (max-width:420px){ .foto-slots{ grid-template-columns:1fr; } }
+  .foto-slot{ position:relative; border:1.5px dashed var(--border-strong); border-radius:14px; overflow:hidden; background:var(--surface-2); cursor:pointer; min-height:118px; display:flex; flex-direction:column; transition:border-color .15s; }
+  .foto-slot:active{ transform:scale(.98); }
+  .foto-slot input[type=file]{ display:none; }
+  .foto-slot .thumb-wrap{ position:relative; flex:1; display:flex; align-items:center; justify-content:center; background:var(--bg-elevated); min-height:84px; }
+  .foto-slot img{ width:100%; height:84px; object-fit:cover; display:block; }
+  .foto-slot .placeholder-icon{ color:var(--text-faint); }
+  .foto-slot .placeholder-icon svg{ width:26px; height:26px; }
+  .foto-slot .slot-label{ font-size:12px; padding:7px 8px; text-align:center; font-weight:700; color:var(--text-dim); letter-spacing:.01em; }
+  .foto-slot.filled{ border-style:solid; border-color:var(--brand); }
+  .foto-slot.filled .slot-label{ color:var(--text); }
+  .foto-slot .badge-ok{ position:absolute; top:6px; right:6px; background:var(--brand); color:var(--on-brand); width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-sm); }
+  .foto-slot .badge-ok svg{ width:12px; height:12px; stroke-width:3; }
+  .foto-slot .remove-x{ position:absolute; top:6px; left:6px; background:rgba(0,0,0,.65); color:#fff; border:none; border-radius:8px; width:30px; height:30px; cursor:pointer; z-index:5; display:flex; align-items:center; justify-content:center; }
+  .foto-slot .remove-x svg{ width:14px; height:14px; }
+  .foto-slot .uploading{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; background:rgba(10,12,15,.75); color:#fff; font-size:10.5px; font-weight:600; }
+  .spinner{ width:20px; height:20px; border:2.5px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .extra-fotos-row{ display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .extra-fotos-row:last-of-type{ border-bottom:none; }
+  .extra-vacio{ display:flex; align-items:center; gap:11px; padding:9px 0; color:var(--text-faint); font-size:13px; }
+  .extra-vacio .vacio-ico{ width:42px; height:42px; border-radius:8px; background:var(--bg-elevated); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text-faint); }
+  .extra-vacio .vacio-ico svg{ width:22px; height:22px; }
+  .extra-fotos-row .thumb-ex{ position:relative; width:42px; height:42px; flex-shrink:0; }
+  .extra-fotos-row .thumb-ex img{ width:42px; height:42px; }
+  .extra-fotos-row .badge-ok{ position:absolute; top:-4px; right:-4px; background:var(--brand); color:var(--on-brand); width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-sm); }
+  .extra-fotos-row .badge-ok svg{ width:10px; height:10px; stroke-width:3; }
+  .extra-fotos-row img{ width:42px; height:42px; object-fit:cover; border-radius:8px; flex-shrink:0; }
+  .extra-fotos-row span{ flex:1; font-size:13px; }
+
+  /* ================= TOAST ================= */
+  .toast{
+    position:fixed; top:16px; left:50%; transform:translateX(-50%) translateY(-70px); z-index:80;
+    display:flex; align-items:center; gap:10px; background:var(--surface-3); color:var(--text);
+    font-weight:600; font-size:13.5px; padding:12px 18px 12px 14px; border-radius:12px;
+    border-left:4px solid var(--brand); box-shadow:var(--shadow-md); transition:transform .25s cubic-bezier(.2,.9,.3,1.2);
+    max-width:88vw;
+  }
+  .toast.show{ transform:translateX(-50%) translateY(0); }
+  .toast.toast-error{ border-left-color:var(--danger); }
+  .toast .toast-icon{ flex-shrink:0; display:flex; }
+
+  /* ================= BOTTOM TAB BAR ================= */
+  .tabbar{
+    position:fixed; bottom:0; left:0; right:0; z-index:50; display:flex;
+    background:rgba(23,27,33,.94); backdrop-filter:blur(14px); border-top:1px solid var(--border);
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  }
+  .tab-item{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 4px;
+    background:none; border:none; color:var(--text-faint); font-family:var(--sans); font-size:11.5px; font-weight:700;
+    cursor:pointer; position:relative; border-radius:10px;
+  }
+  .tab-item.active{ color:var(--accent); }
+  .tab-item.admin-active{ color:var(--brand); }
+  .tab-item svg{ width:21px; height:21px; }
+  .tab-count{ position:absolute; top:2px; right:calc(50% - 20px); min-width:15px; height:15px; padding:0 3px; background:var(--accent); color:var(--on-accent); border-radius:8px; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+
+  /* ================= FAB GUARDAR ================= */
+  .fab-save{
+    position:fixed; right:16px; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:45;
+    display:flex; align-items:center; gap:8px; padding:14px 20px; border-radius:var(--radius-full);
+    background:var(--accent); color:var(--on-accent); border:none; font-family:var(--sans); font-weight:800; font-size:14.5px;
+    box-shadow:0 8px 22px rgba(255,122,51,.35); cursor:pointer; transition:transform .12s;
+  }
+  .fab-save:active{ transform:scale(.96); }
+  .fab-save:disabled{ background:var(--surface-3); color:var(--text-faint); box-shadow:none; }
+  .fab-save svg{ width:18px; height:18px; }
+
+  /* ================= LIST VIEW ================= */
+  #listView{ display:none; }
+  .list-toolbar{ display:flex; gap:9px; padding:14px 14px 4px; align-items:center; }
+  .search-wrap{ flex:1; position:relative; }
+  .search-wrap svg{ position:absolute; left:13px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-faint); }
+  .search-wrap input{ padding-left:38px; }
+  .icon-btn{ width:44px; height:44px; flex-shrink:0; border-radius:10px; background:var(--surface-2); border:1px solid var(--border-strong); color:var(--text-dim); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .icon-btn:active{ transform:scale(.94); }
+
+  .rec-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); margin:10px 12px; padding:15px 16px; box-shadow:var(--shadow-sm); border-left:3px solid var(--border-strong); transition:transform .12s; }
+  .rec-card.has-electrica{ border-left-color:var(--accent); }
+  .rec-card.has-fotos{ border-left-color:var(--brand); }
+  .rec-top{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .rec-ot{ font-family:var(--mono); font-weight:800; color:var(--accent-strong); font-size:16px; }
+  .rec-date{ font-size:12px; color:var(--text-dim); font-family:var(--mono); white-space:nowrap; }
+  .rec-cliente{ font-size:16px; margin-top:4px; font-weight:700; }
+  .rec-meta{ font-size:12px; color:var(--text-dim); margin-top:4px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .chip{ background:var(--surface-2); border-radius:6px; padding:3px 8px; font-size:12px; color:var(--text-dim); font-weight:600; }
+  .rec-actions{ display:flex; gap:8px; margin-top:12px; }
+  .rec-actions button{ flex:1; padding:9px 6px; border-radius:9px; font-size:12.5px; font-weight:700; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .rec-actions button svg{ width:14px; height:14px; }
+  .rec-actions button.danger{ color:var(--danger); border-color:rgba(240,100,92,.35); background:var(--danger-dim); }
+  .rec-actions button:active{ transform:scale(.96); }
+
+  .empty-state{ text-align:center; color:var(--text-dim); padding:60px 30px; }
+  .empty-state svg{ width:52px; height:52px; color:var(--text-faint); margin-bottom:14px; }
+  .empty-state p{ font-size:14px; line-height:1.6; margin:0; }
+
+  .skeleton{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); margin:10px 12px; padding:16px; }
+  .skeleton .sk-line{ height:12px; border-radius:6px; background:linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%); background-size:200% 100%; animation:shimmer 1.3s infinite; margin-bottom:9px; }
+  @keyframes shimmer{ 0%{ background-position:200% 0; } 100%{ background-position:-200% 0; } }
+
+  /* ================= VIEW TRANSITION ================= */
+  .view-fade{ animation:fadeIn .22s ease; }
+  @keyframes fadeIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+
+  /* ================= MENU ELEGIR FOTO (cámara / galería) ================= */
+  .foto-choice-backdrop{ position:fixed; inset:0; background:rgba(20,24,28,.45); z-index:70; display:none; }
+  .foto-choice-backdrop.open{ display:block; }
+  .foto-choice-sheet{
+    position:fixed; left:12px; right:12px; bottom:-100%; z-index:71; background:var(--surface);
+    border-radius:18px; padding:10px; box-shadow:var(--shadow-md); transition:bottom .22s ease;
+    max-width:460px; margin:0 auto;
+  }
+  .foto-choice-sheet.open{ bottom:calc(16px + env(safe-area-inset-bottom)); }
+  .foto-choice-title{ text-align:center; font-weight:800; font-size:14px; color:var(--text-dim); padding:10px 6px 6px; }
+  .foto-choice-btn{
+    width:100%; display:flex; align-items:center; gap:12px; padding:15px 16px; margin-top:6px; border:none;
+    background:var(--surface-2); border-radius:12px; font-size:15px; font-weight:700; color:var(--text); cursor:pointer;
+  }
+  .foto-choice-btn span{ display:flex; }
+  .foto-choice-btn svg{ width:20px; height:20px; color:var(--accent-strong); }
+  .foto-choice-btn.cancel{ justify-content:center; color:var(--text-dim); margin-top:10px; }
+  .foto-choice-btn:active{ background:var(--surface-3); }
+
+  /* ================= COMBOBOX CLIENTE ================= */
+  .combo-wrap{ position:relative; }
+  .combo-wrap input{ padding-right:46px; }
+  .combo-chevron{
+    position:absolute; right:5px; top:50%; transform:translateY(-50%); width:36px; height:36px;
+    border:none; background:var(--surface-3); border-radius:8px; display:flex; align-items:center; justify-content:center;
+    color:var(--text-dim); cursor:pointer; padding:0;
+  }
+  .combo-chevron svg{ width:18px; height:18px; transition:transform .18s ease; }
+  .combo-chevron.open svg{ transform:rotate(180deg); }
+  .combo-chevron.open{ background:var(--accent); color:var(--on-accent); }
+  .combo-dropdown{
+    position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--surface);
+    border:1px solid var(--border-strong); border-radius:12px; box-shadow:var(--shadow-md);
+    max-height:280px; overflow-y:auto; z-index:40; display:none;
+  }
+  .combo-dropdown.open{ display:block; }
+  .combo-option{ padding:13px 15px; font-size:15px; cursor:pointer; border-bottom:1px solid var(--border); font-weight:600; }
+  .combo-option:last-child{ border-bottom:none; }
+  .combo-option:active{ background:var(--surface-2); }
+  .combo-empty{ padding:13px 15px; font-size:13px; color:var(--text-faint); }
+
+  /* ================= CONEXION (DELTA / ESTRELLA / MONOFASICO) ================= */
+  .conexion-choice{ display:flex; gap:8px; }
+  .conexion-opt{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding:12px 6px;
+    border:1.5px solid var(--border-strong); border-radius:12px; background:var(--surface-2); cursor:pointer;
+  }
+  .conexion-opt input{ position:absolute; opacity:0; width:0; height:0; }
+  .conexion-symbol{ font-size:22px; line-height:1; color:var(--text-dim); }
+  .conexion-opt span:last-child{ font-size:12px; font-weight:700; color:var(--text-dim); }
+  .conexion-opt:has(input:checked){ border-color:var(--accent); background:var(--accent-dim); }
+  .conexion-opt:has(input:checked) .conexion-symbol,
+  .conexion-opt:has(input:checked) span:last-child{ color:var(--accent-strong); }
+
+  /* ================= FILTRO POR CLIENTE Y VISOR DE OT ================= */
+  [hidden]{ display:none !important; }
+  .list-filters{ display:flex; gap:10px; align-items:center; padding:6px 14px 4px; flex-wrap:wrap; }
+  .list-filters select{ flex:1; min-width:220px; font-family:var(--sans); font-size:15px; text-transform:none; }
+  .ot-aviso{ border:1.5px solid var(--accent, #e8590c); border-radius:10px; padding:10px 12px; background:var(--surface-2); display:flex; flex-direction:column; gap:8px; font-size:13.5px; }
+  .ot-aviso .ot-v{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .ot-aviso .ot-v span.t{ flex:1 1 200px; min-width:0; }
+  .ot-aviso button{ font:inherit; font-weight:600; border-radius:8px; border:1px solid var(--border, #cbd5d9); background:var(--surface, #fff); color:inherit; padding:7px 12px; min-height:40px; cursor:pointer; }
+  .ot-aviso button.prim{ background:var(--accent, #e8590c); color:#fff; border-color:transparent; }
+  .chip.vers{ border:0; font:inherit; font-size:12px; font-weight:600; cursor:pointer; background:var(--surface-2); color:var(--text-dim); outline:1.5px solid var(--accent, #e8590c); }
+  .banda-versiones{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:6px 14px 4px; padding:9px 12px; border-radius:10px; border:1.5px solid var(--accent, #e8590c); background:var(--surface-2); font-size:13.5px; }
+  .banda-versiones button{ font:inherit; font-weight:600; border-radius:8px; border:1px solid var(--border, #cbd5d9); background:var(--surface, #fff); color:inherit; padding:7px 12px; min-height:40px; cursor:pointer; }
+  .list-summary{ font-size:12.5px; color:var(--text-dim); font-family:var(--mono); }
+  .rec-card{ cursor:pointer; }
+  .rec-actions .btn-ver{ background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:800; }
+
+  .ver-overlay{ position:fixed; inset:0; z-index:5000; background:var(--bg); display:flex; flex-direction:column; }
+  .ver-bar{ display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--surface); border-bottom:1px solid var(--border); }
+  .ver-title{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .ver-title b{ font-family:var(--mono); color:var(--accent-strong); font-size:17px; }
+  .ver-title span{ font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ver-btn{ width:46px; height:46px; flex-shrink:0; border-radius:10px; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); font-size:20px; font-weight:700; cursor:pointer; }
+  .ver-btn:active{ transform:scale(.94); }
+  .ver-btn:disabled{ opacity:.35; }
+  .ver-nav{ display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:12px; color:var(--text-dim); }
+  .ver-toolbar{ display:flex; gap:8px; padding:8px 12px; flex-wrap:wrap; align-items:center; background:var(--surface); border-bottom:1px solid var(--border); }
+  .ver-chip{ padding:9px 13px; border-radius:999px; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); font-weight:700; font-size:13px; cursor:pointer; font-family:var(--sans); }
+  .ver-chip.accion{ background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .ver-toolbar .sep{ flex:1; }
+  .ver-body{ flex:1; overflow:auto; padding:14px; -webkit-overflow-scrolling:touch; }
+  .ver-body .doc-page{ background:#fff; max-width:860px; margin:0 auto 16px; border:1px solid var(--border-strong); border-radius:10px; box-shadow:var(--shadow-sm); page-break-after:auto; }
+  .ver-fotos{ background:#fff; color:#000; max-width:860px; margin:0 auto 24px; padding:18px 22px; border:1px solid var(--border-strong); border-radius:10px; box-shadow:var(--shadow-sm); font-family:Arial, Helvetica, sans-serif; }
+  .ver-fotos h3{ margin:0 0 12px; font-size:14px; }
+  .ver-fotos-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; }
+  .ver-fotos-grid figure{ margin:0; cursor:zoom-in; }
+  .ver-fotos-grid img{ width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:8px; border:1px solid #bbb; background:#eee; display:block; }
+  .ver-fotos-grid figcaption{ font-size:11.5px; color:#222; margin-top:4px; text-align:center; line-height:1.3; }
+  .lightbox{ position:fixed; inset:0; z-index:6000; background:rgba(0,0,0,.93); display:flex; align-items:center; justify-content:center; flex-direction:column; }
+  .po-overlay{ position:fixed; inset:0; z-index:5500; background:rgba(10,12,15,.55); display:flex; align-items:center; justify-content:center; padding:18px; }
+  .po-box{ background:var(--surface); border-radius:16px; padding:22px 22px 18px; max-width:380px; width:100%; box-shadow:0 8px 30px rgba(0,0,0,.3); }
+  .po-box h3{ margin:0; font-size:18px; }
+  .po-box p{ margin:3px 0 14px; font-size:13px; color:var(--text-dim); }
+  .po-fila{ display:flex; align-items:center; gap:12px; padding:12px 4px; border-top:1px solid var(--border); text-transform:none !important; font-family:var(--sans) !important; font-size:16px !important; font-weight:600 !important; color:var(--text) !important; cursor:pointer; }
+  .po-fila input{ width:22px; height:22px; accent-color:var(--accent); flex-shrink:0; }
+  .po-box .po-version{ margin:12px 0 0; font-size:11px; color:var(--text-faint); text-align:center; font-family:var(--mono); }
+  .po-botones{ display:flex; gap:10px; margin-top:16px; }
+  .po-botones button{ flex:1; height:48px; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); font-size:16px; font-weight:700; cursor:pointer; }
+  .po-botones .primario{ background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .po-botones button:disabled{ opacity:.4; }
+  .lightbox{ touch-action:none; user-select:none; -webkit-user-select:none; }
+  .lightbox img{ max-width:96vw; max-height:82vh; object-fit:contain; will-change:transform; -webkit-user-drag:none; transform-origin:center center; }
+  .lightbox img.anim{ transition:transform .18s ease-out; }
+  .lightbox .lb-zoom{ position:absolute; top:14px; left:50%; transform:translateX(-50%); display:flex; gap:8px; align-items:center; }
+  .lightbox .lb-zoom button{ position:static; width:48px; height:48px; font-size:24px; }
+  .lightbox .lb-zoom #lbAjustar{ width:auto; padding:0 16px; font-size:14px; border-radius:24px; font-weight:700; }
+  .lightbox .lb-zoom .lb-nivel{ color:#fff; font-size:13px; min-width:46px; text-align:center; font-family:var(--mono); }
+  .lightbox .lb-cap{ color:#fff; margin-top:12px; font-size:15px; text-align:center; padding:0 60px; }
+  .lightbox button{ position:absolute; width:54px; height:54px; border-radius:50%; border:none; background:rgba(255,255,255,.16); color:#fff; font-size:26px; cursor:pointer; }
+  .lightbox .lb-x{ top:14px; right:14px; } .lightbox .lb-prev{ left:12px; top:50%; } .lightbox .lb-next{ right:12px; top:50%; }
+  .lightbox .lb-acciones{ position:absolute; left:0; right:0; bottom:20px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; padding:0 14px; }
+  .lightbox .lb-acciones button{ position:static; width:auto; height:50px; border-radius:12px; padding:0 24px; font-size:16px; font-weight:700; background:rgba(255,255,255,.18); color:#fff; }
+  .lightbox .lb-acciones .peligro{ background:#D32F2F; }
+  .extra-fotos-row img{ cursor:zoom-in; }
+
+  /* ================= TABLET / PANTALLAS GRANDES ================= */
+  @media (min-width:720px){
+    .container{ max-width:920px; }
+    .appbar{ max-width:920px; margin:0 auto; }
+    .section-nav{ max-width:920px; margin:0 auto; position:sticky; }
+    .foto-slots{ grid-template-columns:repeat(3, 1fr); }
+    #recList{ max-width:920px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(320px,1fr)); gap:2px; align-content:start; }
+    .rec-card{ margin:8px; }
+    .list-toolbar, .list-filters{ max-width:920px; margin:0 auto; }
+    .grid2{ grid-template-columns:repeat(3, 1fr); }
+    .tabbar{ padding-left:18vw; padding-right:18vw; }
+    .fab-save{ right:calc(18vw + 16px); }
+  }
+  @media (min-width:1100px){
+    .container{ max-width:1080px; }
+    .appbar, .section-nav, #recList, .list-toolbar, .list-filters{ max-width:1080px; }
+    .foto-slots{ grid-template-columns:repeat(4, 1fr); }
+    .section-nav{ flex-wrap:wrap; overflow-x:visible; }
+    .tabbar{ padding-left:26vw; padding-right:26vw; }
+    .fab-save{ right:calc(26vw + 16px); }
+  }
+  /* En pantallas grandes, evita que el switch de Motor/Bomba y las tarjetas se vean estirados */
+  @media (min-width:720px){
+    .comp-switch{ max-width:420px; }
+  }
+
+  /* ================= IMPRESIÓN (documentos PDF) ================= */
+  #printArea{ display:none; }
+  /*PRINT-START*/
+  @media print{
+    @page{ size:letter; margin:8mm; }   /* papel CARTA (8,5 x 11 in) con márgenes de 8 mm: área útil = 755 x 995 px */
+    html, body{ height:auto !important; min-height:0 !important; overflow:visible !important; margin:0 !important; padding:0 !important; background:#fff !important; }
+    /* Todo lo que no es el documento se QUITA (display:none), no solo se oculta: lo oculto con
+       visibility seguía ocupando espacio (lista de registros, formulario) y el navegador lo
+       imprimía como decenas de hojas en blanco. */
+    body > *:not(#printArea){ display:none !important; }
+    #printArea{ display:block !important; position:static !important; width:100%; color:#000; background:#fff; padding:0; margin:0; }
+    #printArea h2, #printArea h3{ color:#000; }
+    .doc-photo, .doc-table tr{ break-inside:avoid; page-break-inside:avoid; }
+  }
+  /*PRINT-END*/
+  .doc-page{ font-family:Arial, Helvetica, sans-serif; color:#000; padding:26px 30px; page-break-after:always; }
+  #printArea .doc-page{ padding:14px 20px; }   /* en papel el margen lo da la hoja (@page): así sobra más espacio útil */
+  /* Para medir las hojas "como saldrían en papel" sin mostrarlas en pantalla (ver ajustarHojasAlPapel) */
+  #printArea.midiendo{ display:block !important; position:fixed; left:-99999px; top:0; width:755px; visibility:hidden; }
+  /* Para fotografiar las hojas al guardar el PDF en el PC (ver pcGenerarPdf): queda bajo la ventana de "Guardar en mi PC", que es opaca */
+  #printArea.exportando{ display:block !important; position:fixed; left:0; top:0; width:755px; z-index:5000; background:#fff; }
+  .pc-overlay{ background:var(--surface-2); z-index:5600; align-items:flex-start; overflow:auto; }
+  .pc-overlay .po-box{ max-width:640px; margin:auto; }
+  .pc-fila{ display:flex; gap:10px; align-items:flex-start; padding:9px 2px; border-top:1px solid var(--border); font-size:14px; }
+  .pc-fila input{ width:20px; height:20px; accent-color:var(--accent); flex-shrink:0; margin-top:2px; }
+  .pc-fila small{ display:block; color:var(--text-dim); font-size:12px; }
+  .rot-caja{ height:min(52vh, 380px); display:flex; align-items:center; justify-content:center; overflow:hidden; background:#111; border-radius:10px; margin-bottom:12px; }
+  .rot-caja img{ max-width:none; transition:transform .18s; }
+  .fpc-celda{ width:112px; border:1px solid var(--border-strong); border-radius:8px; background:var(--surface); padding:4px; cursor:pointer; font-size:10.5px; color:var(--text-dim); text-align:center; word-break:break-all; }
+  .fpc-celda img{ width:100%; height:80px; object-fit:cover; border-radius:5px; display:block; margin-bottom:3px; }
+  .fpc-celda:hover{ border-color:var(--accent); }
+  #pcEstado{ white-space:pre-wrap; font-family:var(--mono); font-size:12.5px; }
+  /* El pie (dirección, fono, correo) nunca debe quedar solo en una hoja nueva */
+  .doc-pie{ break-inside:avoid; page-break-inside:avoid; break-before:avoid; page-break-before:avoid; }
+  .doc-page:last-child{ page-break-after:auto; }
+  .doc-header{ display:flex; align-items:flex-start; justify-content:space-between; border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:10px; }
+  .doc-header .co{ font-size:11px; line-height:1.5; }
+  .doc-header .co b{ font-size:12px; }
+  .doc-header .ot{ font-size:13px; font-weight:700; white-space:nowrap; }
+  .doc-title{ text-align:center; font-weight:700; font-size:14px; border:1.5px solid #000; padding:5px; margin-bottom:14px; }
+  .doc-table{ width:100%; border-collapse:collapse; font-size:11.5px; margin-bottom:14px; }
+  .doc-table td, .doc-table th{ border:1px solid #000; padding:5px 8px; }
+  .doc-table td.lbl{ font-weight:700; width:32%; background:#f2f2f2; }
+  .doc-table th{ background:#f2f2f2; font-weight:700; text-align:center; }
+  .doc-section-title{ font-weight:700; font-size:12px; text-align:center; background:#f2f2f2; border:1px solid #000; padding:4px; margin-bottom:0; }
+  .doc-photo{ text-align:center; margin:10px 0; font-size:11px; }
+</style>
+</head>
+<body>
+<script>
+  /* ============================================================
+     CONFIGURACIÓN — SEHINCO · Hoja de Ingreso Digital
+     Edita solo estos valores para reconfigurar la app.
+     ============================================================ */
+  const CONFIG = {
+    WORKER_URL: 'https://sehinco-fotos.mati4758.workers.dev',
+    MAX_FOTO_MB: 15                  // tamaño máximo permitido por foto
+  };
+  // Los PIN (técnico y administrador) ya NO están en el código: se validan en el Worker.
+
+  const API_BASE = CONFIG.WORKER_URL.replace(/\/$/,'') + '/api';
+
+  /* ============================================================
+     SESIÓN POR PIN
+     El tablet guarda un "token" (no el PIN). Token de técnico dura 90 días,
+     el de administrador 12 horas. Si vence o es rechazado, se pide el PIN.
+     ============================================================ */
+  const TK_TEC = 'sehinco_tk', TK_ADM = 'sehinco_tk_admin';
+  function leerTk(k){
+    try{ const o = JSON.parse(localStorage.getItem(k) || 'null'); if(o && o.token && o.exp > Date.now()/1000 + 30) return o; }catch(e){}
+    return null;
+  }
+  function guardarTk(k, o){ try{ localStorage.setItem(k, JSON.stringify(o)); }catch(e){} }
+  function borrarTk(k){ try{ localStorage.removeItem(k); }catch(e){} }
+  function esAdminSesion(){ return !!leerTk(TK_ADM); }
+  function tokenActual(){ const a = leerTk(TK_ADM) || leerTk(TK_TEC); return a ? a.token : null; }
+
+  async function loginConPin(pin){
+    try{
+      const resp = await fetch(API_BASE + '/login', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ pin }) });
+      let out; try{ out = await resp.json(); }catch(e){ out = null; }
+      if(!resp.ok || !out || out.error || !out.data) return { ok:false, message: (out && out.error && out.error.message) || ('Error del servidor (' + resp.status + ')') };
+      guardarTk(out.data.rol === 'admin' ? TK_ADM : TK_TEC, out.data);
+      return { ok:true, rol: out.data.rol };
+    }catch(e){ return { ok:false, message:'Sin conexión con el servidor. Revisa internet.' }; }
+  }
+
+  // Pantalla de PIN. Si varias llamadas la piden a la vez, comparten la misma pantalla.
+  let pinPromesa = null;
+  function pedirPin(){
+    if(pinPromesa) return pinPromesa;
+    pinPromesa = new Promise(resolve => {
+      const st = document.createElement('style');
+      st.textContent = '#pinOverlay{position:fixed;inset:0;z-index:99999;background:#F2F3F5;display:flex;align-items:center;justify-content:center;padding:20px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}'
+        + '#pinOverlay .box{background:#fff;border:1px solid #DDE1E6;border-radius:16px;padding:28px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 2px 14px rgba(20,24,28,.10)}'
+        + '#pinOverlay img{width:64px;height:64px;object-fit:contain}'
+        + '#pinOverlay h1{font-size:18px;margin:10px 0 4px;color:#181B1F}#pinOverlay p{font-size:13px;color:#4B5158;margin:0 0 16px}'
+        + '#pinOverlay input{width:100%;box-sizing:border-box;font-size:22px;text-align:center;letter-spacing:.15em;padding:12px;border:1px solid #C6CBD2;border-radius:10px;background:#EEF0F3;color:#181B1F}'
+        + '#pinOverlay button{margin-top:14px;width:100%;padding:13px;font-size:16px;font-weight:700;border:none;border-radius:10px;background:#FF7A33;color:#231400;cursor:pointer}'
+        + '#pinOverlay button:disabled{opacity:.6}#pinOverlay .err{color:#D32F2F;font-size:13px;min-height:18px;margin-top:10px}';
+      const ov = document.createElement('div');
+      ov.id = 'pinOverlay';
+      ov.innerHTML = '<div class="box"><img src="logo-sehinco.png" alt=""><h1>SEHINCO</h1><p>Ingresa tu PIN para continuar</p>'
+        + '<input id="pinInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="PIN">'
+        + '<button id="pinBtn">Entrar</button><div class="err" id="pinErr"></div></div>';
+      document.head.appendChild(st);
+      document.body.appendChild(ov);
+      const input = ov.querySelector('#pinInput'), btn = ov.querySelector('#pinBtn'), err = ov.querySelector('#pinErr');
+      async function enviar(){
+        const pin = input.value.trim();
+        if(!pin) return;
+        btn.disabled = true; err.textContent = '';
+        const r = await loginConPin(pin);
+        btn.disabled = false;
+        if(r.ok){
+          ov.remove(); st.remove(); pinPromesa = null;
+          try{ isAdmin = esAdminSesion(); updateAdminButton(); }catch(e){}
+          resolve(true);
+        }else{
+          err.textContent = r.message; input.value = ''; input.focus();
+        }
+      }
+      btn.addEventListener('click', enviar);
+      input.addEventListener('keydown', e => { if(e.key === 'Enter') enviar(); });
+      setTimeout(() => input.focus(), 50);
+    });
+    return pinPromesa;
+  }
+
+  // fetch con la sesión puesta. Si el servidor rechaza la sesión (401), pide el PIN y reintenta una vez.
+  async function fetchAuth(url, init){
+    init = init || {};
+    for(let intento = 0; intento < 2; intento++){
+      if(!tokenActual()) await pedirPin();
+      const resp = await fetch(url, { ...init, headers: { ...(init.headers || {}), 'Authorization': 'Bearer ' + tokenActual() } });
+      if(resp.status !== 401 || intento === 1) return resp;
+      borrarTk(TK_TEC); borrarTk(TK_ADM);
+      try{ isAdmin = false; updateAdminButton(); }catch(e){}
+      await pedirPin();
+    }
+  }
+
+  // Cliente de la API de datos (D1, vía el mismo Worker que ya sirve las fotos).
+  // Devuelve siempre {data, error}.
+  async function api(path, opts){
+    opts = opts || {};
+    const headers = {};
+    if(opts.body !== undefined) headers['Content-Type'] = 'application/json';
+    try{
+      const resp = await fetchAuth(API_BASE + path, {
+        method: opts.method || 'GET',
+        headers,
+        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined
+      });
+      let out;
+      try{ out = await resp.json(); }
+      catch(e){ out = { data:null, error:{ message: 'Respuesta inválida del servidor (' + resp.status + ')' } }; }
+      if(!resp.ok && !out.error) out.error = { message: 'HTTP ' + resp.status };
+      return out;
+    }catch(e){
+      return { data:null, error:{ message: e.message || 'Error de red' } };
+    }
+  }
+
+  // Fotos: ahora se guardan en Cloudflare R2 a través de este Worker, en vez de Supabase Storage
+  // (Supabase Storage se quedaba sin espacio del plan gratis). `storage_path` sigue siendo la
+  // misma ruta relativa de siempre; solo cambia dónde vive el archivo.
+  function workerUrl(path){
+    return CONFIG.WORKER_URL.replace(/\/$/,'') + '/' + path.split('/').map(encodeURIComponent).join('/');
+  }
+  async function subirFotoAWorker(path, blob, contentType){
+    const resp = await fetchAuth(workerUrl(path), {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType || 'image/jpeg' },
+      body: blob
+    });
+    if(!resp.ok) throw new Error('Error subiendo foto a Cloudflare (HTTP ' + resp.status + ')');
+  }
+  // Reduce el tamaño de la foto antes de subirla (mismo criterio que las herramientas admin).
+  function comprimirImagen(file, maxDim, calidad){
+    maxDim = maxDim || 1000;
+    calidad = calidad || 0.65;
+    return new Promise((resolve) => {
+      if(file.size < 350 * 1024){ resolve({ blob:file, esJpeg:false }); return; } // ya es chica, no vale la pena
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if(width > maxDim || height > maxDim){
+          if(width > height){ height = Math.round(height * maxDim / width); width = maxDim; }
+          else { width = Math.round(width * maxDim / height); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          resolve(blob ? { blob, esJpeg:true } : { blob:file, esJpeg:false });
+        }, 'image/jpeg', calidad);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve({ blob:file, esJpeg:false }); };
+      img.src = url;
+    });
+  }
+</script>
+
+<!-- Ya no se usa supabase-js — los datos (ingresos/componentes/repuestos/fotos) viven en D1,
+     servidos por el mismo Worker de las fotos, a través del helper api() de más arriba. -->
+
+<!-- ============================================================ ICONOS (uso interno via innerHTML) ============================================================ -->
+<template id="icons">
+  <span data-icon="clipboard"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M9 11h6M9 15h6"/></svg></span>
+  <span data-icon="check-square"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></svg></span>
+  <span data-icon="wrench"><svg class="icon" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 1 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2-2z"/></svg></span>
+  <span data-icon="camera"><svg class="icon" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/></svg></span>
+  <span data-icon="image"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></span>
+  <span data-icon="box"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></span>
+  <span data-icon="file-text"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg></span>
+  <span data-icon="bolt"><svg class="icon" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+  <span data-icon="note"><svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16v13l-4 4H4z"/><path d="M8 9h8M8 13h5"/></svg></span>
+  <span data-icon="plus"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+  <span data-icon="list"><svg class="icon" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
+  <span data-icon="lock"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+  <span data-icon="unlock"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg></span>
+  <span data-icon="search"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
+  <span data-icon="download"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v13"/><path d="M7 11l5 5 5-5"/><path d="M5 21h14"/></svg></span>
+  <span data-icon="edit"><svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
+  <span data-icon="printer"><svg class="icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v5h12v-5"/></svg></span>
+  <span data-icon="trash"><svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></span>
+  <span data-icon="check-circle"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg></span>
+  <span data-icon="alert"><svg class="icon" viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg></span>
+  <span data-icon="save"><svg class="icon" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3"/><path d="M8 21v-7h8v7"/></svg></span>
+  <span data-icon="close"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+  <span data-icon="inbox"><svg class="icon" viewBox="0 0 24 24"><path d="M4 12h4l2 3h4l2-3h4"/><path d="M4 12 5.5 5A2 2 0 0 1 7.5 3h9a2 2 0 0 1 2 2L20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg></span>
+</template>
+<script>
+  // Devuelve el HTML de un ícono definido arriba, para insertarlo donde se necesite.
+  function icon(name){
+    const tpl = document.getElementById('icons').content.querySelector(`[data-icon="${name}"]`);
+    return tpl ? tpl.innerHTML : '';
+  }
+</script>
+
+<!-- ============================================================ APP BAR ============================================================ -->
+<header class="appbar">
+  <div class="appbar-brand">
+    <img class="appbar-emblem" src="logo-sehinco.png" alt="SEHINCO">
+    <div class="appbar-co">
+      <b>SEHINCO LTDA.</b>
+      <span>Hoja de Ingreso Digital</span>
+    </div>
+  </div>
+  <div class="conn-pill" id="connStatus"><span class="dot"></span> En línea</div>
+</header>
+
+<!-- ============================================================ SECTION-JUMP NAV (solo vista formulario) ============================================================ -->
+<nav class="section-nav" id="sectionNav"></nav>
+
+<!-- ============================================================ FORM VIEW ============================================================ -->
+<main class="container view-fade" id="formView">
+
+  <section class="card" id="sec-datos" data-jump="Datos" data-icon="clipboard">
+    <div class="card-head"><span class="card-icon"></span><h2>Datos generales</h2><span class="chev"></span></div>
+    <div class="card-body">
+      <div class="grid2">
+        <div class="field"><label>O.T.</label><input type="text" id="f_ot" placeholder="27946" inputmode="numeric"></div>
+        <div class="field"><label>C.O.T.</label><input type="text" id="f_cot" placeholder="Opcional"></div>
+        <div class="field"><label>Código equipo</label><input type="text" id="f_codigo" placeholder="4B SP1"></div>
+        <div class="field"><label>Fecha</label><input type="date" id="f_fecha"></div>
+        <div class="field span2" id="otAviso" hidden></div>
+        <div class="field span2"><label>Cliente</label>
+          <div class="combo-wrap" id="clienteCombo">
+            <input type="text" id="f_cliente" placeholder="CERVECERA CCU CHILE LTDA" autocomplete="off">
+            <button type="button" class="combo-chevron" id="clienteChevron" aria-label="Ver lista de clientes">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="combo-dropdown" id="clienteDropdown"></div>
+          </div>
+        </div>
+        <div class="field"><label>Guía de despacho</label><input type="text" id="f_guia" placeholder="N°"></div>
+        <div class="field"><label>Técnico / preparado por</label><input type="text" id="f_tecnico" placeholder="Nombre"></div>
+        <div class="field span2"><label>Equipo</label><input type="text" id="f_diagnostico" placeholder="Ej: MOTOBOMBA, MOTORREDUCTOR, MOTOVENTILADOR..."></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="sec-checkin" data-icon="check-square">
+    <div class="card-head"><span class="card-icon"></span><h2>Checklist de ingreso</h2><span class="chev"></span></div>
+    <div class="card-body">
+      <div id="checkIn"></div>
+      <div class="add-item">
+        <input type="text" id="checkInNew" placeholder="Agregar ítem al checklist...">
+        <button class="btn-mini" onclick="addCheckItem('in')"><span class="mini-icon"></span>Agregar</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="sec-equipo" data-jump="Equipo" data-icon="wrench">
+    <div class="card-head"><span class="card-icon"></span><h2>Equipo (Motor / Bomba)</h2><span class="chev"></span></div>
+    <div class="card-body">
+      <div class="comp-switch" id="compSwitch"></div>
+      <div id="compPanes"></div>
+    </div>
+  </section>
+
+  <section class="card" id="sec-fotos" data-jump="Fotos" data-icon="camera">
+    <div class="card-head"><span class="card-icon"></span><h2>Fotos</h2><span class="chev"></span></div>
+    <div class="card-body">
+      <div id="fotoSlots" class="foto-slots"></div>
+      <div class="subhead">Fotos adicionales</div>
+      <div id="fotosExtra"></div>
+      <div class="add-item">
+        <input type="text" id="fotoEtiqueta" placeholder="Etiqueta (ej: DETALLE SELLO)">
+        <button class="btn-mini" onclick="abrirFotoChoiceExtra()"><span class="mini-icon foto-ico"></span>Subir</button>
+      </div>
+      <div class="hint">Toca un casillero para elegir cámara o galería. Si aún no has guardado el registro, se crea automáticamente al subir la primera foto.</div>
+    </div>
+  </section>
+
+  <section class="card" id="sec-repuestos" data-jump="Repuestos" data-icon="box">
+    <div class="card-head"><span class="card-icon"></span><h2>Repuestos utilizados</h2><span class="chev"></span></div>
+    <div class="card-body">
+      <div id="repuestosList"></div>
+      <div class="add-item">
+        <input type="text" id="repComponente" placeholder="Componente" style="flex:1;min-width:110px;">
+        <input type="text" id="repDescripcion" placeholder="Descripción" style="flex:2;min-width:140px;">
+        <input type="text" id="repCantidad" placeholder="Cant." style="width:64px;">
+        <button class="btn-mini" onclick="addRepuesto()"><span class="mini-icon"></span></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="sec-electrica" data-jump="Eléctrico" data-icon="bolt">
+    <div class="card-head"><span class="card-icon"></span><h2>Mantención eléctrica</h2><span class="chev"></span></div>
+    <div class="card-body">
+      <div class="toggle-row">
+        <span>Aplica mantención eléctrica a este equipo</span>
+        <label class="switch"><input type="checkbox" id="f_aplicaElectrica" onchange="toggleElectrica(this.checked)"><span class="track"></span></label>
+      </div>
+      <div id="electricaBlock" style="display:none;">
+        <div class="field">
+          <label>Conexión</label>
+          <div class="conexion-choice">
+            <label class="conexion-opt"><input type="radio" name="e_conexion" value="DELTA"><span class="conexion-symbol">▲</span><span>Delta</span></label>
+            <label class="conexion-opt"><input type="radio" name="e_conexion" value="ESTRELLA" checked><span class="conexion-symbol">★</span><span>Estrella</span></label>
+            <label class="conexion-opt"><input type="radio" name="e_conexion" value="MONOFASICO"><span class="conexion-symbol">M</span><span>Monofásico</span></label>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Prueba de continuidad</label><input type="text" id="e_continuidad"></div>
+        </div>
+        <div class="subhead">Tabla de datos aislación</div>
+        <div id="aislacionTable"></div>
+        <div class="field"><label>Observación aislación</label><input type="text" id="e_obsAislacion"></div>
+
+        <div class="subhead">Medición de resistencia (Ω)</div>
+        <div class="grid2">
+          <div class="field"><label>U1-U2</label><input type="text" id="e_u1u2"></div>
+          <div class="field"><label>V1-V2</label><input type="text" id="e_v1v2"></div>
+          <div class="field"><label>W1-W2</label><input type="text" id="e_w1w2"></div>
+          <div class="field"><label>Obs. resistencia</label><input type="text" id="e_obsResistencia"></div>
+        </div>
+
+        <div class="subhead">Corrientes en vacío (Amp)</div>
+        <div class="grid2">
+          <div class="field"><label>R</label><input type="text" id="e_r"></div>
+          <div class="field"><label>S</label><input type="text" id="e_s"></div>
+          <div class="field"><label>T</label><input type="text" id="e_t"></div>
+          <div class="field"><label>Obs. corriente</label><input type="text" id="e_obsCorriente"></div>
+        </div>
+
+        <div class="subhead">Conclusión estado de bobinado</div>
+        <div class="conclusion-radios">
+          <label><input type="radio" name="e_concBobinado" value="Bueno"> Bueno</label>
+          <label><input type="radio" name="e_concBobinado" value="Regular"> Regular</label>
+          <label><input type="radio" name="e_concBobinado" value="Malo"> Malo (en ccto.)</label>
+        </div>
+        <div class="field"><label>Observación bobinado</label><input type="text" id="e_obsBobinado"></div>
+
+        <div class="subhead">Conclusión placa de borne</div>
+        <div class="conclusion-radios">
+          <label><input type="radio" name="e_concPlaca" value="Bueno"> Bueno</label>
+          <label><input type="radio" name="e_concPlaca" value="Regular"> Regular</label>
+          <label><input type="radio" name="e_concPlaca" value="Malo"> Malo</label>
+        </div>
+        <div class="field"><label>Observación placa</label><input type="text" id="e_obsPlaca"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="sec-trabajo" data-jump="Trabajo" data-icon="file-text">
+    <div class="card-head"><span class="card-icon"></span><h2>Trabajo y conclusión</h2><span class="chev"></span></div>
+    <div class="card-body">
+      <div class="field"><label>Descripción del trabajo</label><textarea id="f_descripcionTrabajo" placeholder="Desarme y armado de equipo, revisión de partes..."></textarea></div>
+      <div class="field"><label>Conclusión</label><textarea id="f_conclusion" placeholder="Ej: equipo queda en condiciones de trabajo normal"></textarea></div>
+      <div class="field"><label>Sugerencia</label><textarea id="f_sugerencia"></textarea></div>
+      <div class="field"><label>Medida adicional correctiva a la falla</label><textarea id="f_medidaCorrectiva"></textarea></div>
+    </div>
+  </section>
+
+  <section class="card" id="sec-notas" data-jump="Notas" data-icon="note">
+    <div class="card-head"><span class="card-icon"></span><h2>Checklist de salida</h2><span class="chev"></span></div>
+    <div class="card-body">
+      <div id="checkOut"></div>
+      <div class="add-item">
+        <input type="text" id="checkOutNew" placeholder="Agregar ítem al checklist...">
+        <button class="btn-mini" onclick="addCheckItem('out')"><span class="mini-icon"></span>Agregar</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="sec-obsgeneral" data-icon="note">
+    <div class="card-head"><span class="card-icon"></span><h2>Observación general</h2><span class="chev"></span></div>
+    <div class="card-body">
+      <textarea id="f_obsGeneral" placeholder="Notas adicionales del ingreso..."></textarea>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================================================ LIST VIEW ============================================================ -->
+<div id="listView">
+  <div class="list-toolbar">
+    <div class="search-wrap"><span class="search-icon"></span><input type="text" id="searchBox" placeholder="Buscar por OT, cliente o técnico..."></div>
+    <button class="icon-btn" id="btnPc" title="Guardar OT nuevas en mis carpetas del PC" hidden></button>
+    <button class="icon-btn" id="btnExport" title="Exportar CSV"></button>
+  </div>
+  <div class="list-filters">
+    <select id="clienteFiltro" aria-label="Filtrar por cliente"><option value="">Todos los clientes</option></select>
+    <span class="list-summary" id="listaResumen"></span>
+  </div>
+  <div class="banda-versiones" id="bandaVersiones" hidden></div>
+  <div id="recList"></div>
+</div>
+
+<!-- ============================================================ VISOR DE OT (ver el contenido sin imprimir) ============================================================ -->
+<div id="verOverlay" class="ver-overlay" hidden>
+  <div class="ver-bar">
+    <button class="ver-btn" id="verCerrar" aria-label="Cerrar">✕</button>
+    <div class="ver-title"><b id="verOT"></b><span id="verCliente"></span></div>
+    <div class="ver-nav">
+      <button class="ver-btn" id="verPrev" aria-label="OT anterior">‹</button>
+      <span id="verPos"></span>
+      <button class="ver-btn" id="verNext" aria-label="OT siguiente">›</button>
+    </div>
+  </div>
+  <div class="ver-toolbar">
+    <button class="ver-chip" data-sec="datos">Ingreso</button>
+    <button class="ver-chip" data-sec="informe">Informe</button>
+    <button class="ver-chip" data-sec="electrica" id="verChipElec">Eléctrica</button>
+    <button class="ver-chip" data-sec="fotos" id="verChipFotos">Fotos</button>
+    <span class="sep"></span>
+    <button class="ver-chip" id="verZoomMenos" aria-label="Letra más chica">A−</button>
+    <button class="ver-chip" id="verZoomMas" aria-label="Letra más grande">A+</button>
+    <button class="ver-chip" id="verEditar">Editar</button>
+    <button class="ver-chip accion" id="verImprimir">Imprimir</button>
+  </div>
+  <div class="ver-body" id="verBody"></div>
+</div>
+<div id="printOpts" class="po-overlay" hidden>
+  <div class="po-box" role="dialog" aria-modal="true" aria-labelledby="poTitulo">
+    <h3 id="poTitulo">Imprimir</h3>
+    <p id="poSub"></p>
+    <label class="po-fila"><input type="checkbox" id="poDatos"><span>Datos de ingreso</span></label>
+    <label class="po-fila"><input type="checkbox" id="poInforme"><span>Informe de mantenimiento</span></label>
+    <label class="po-fila" id="poFilaElectrica"><input type="checkbox" id="poElectrica"><span>Guía de mantención eléctrica</span></label>
+    <label class="po-fila" id="poFilaFotos"><input type="checkbox" id="poFotos"><span id="poFotosTxt">Fotos</span></label>
+    <div class="po-botones"><button id="poCancelar">Cancelar</button><button id="poImprimir" class="primario">Imprimir</button></div>
+    <p class="po-version" id="poVersion"></p>
+  </div>
+</div>
+<div id="pcOv" class="po-overlay pc-overlay" hidden>
+  <div class="po-box" role="dialog" aria-modal="true" aria-labelledby="pcTitulo">
+    <h3 id="pcTitulo">Guardar OT nuevas en mis carpetas del PC</h3>
+    <p>Para las OT hechas en la tablet que aún no están en la carpeta del año: crea <b>CLIENTE / OT número</b> con el informe en PDF (el mismo de imprimir) y todas sus fotos. Solo en Chrome o Edge del computador.</p>
+    <p id="pcCarpeta">Aún no elegiste la carpeta del año (por ejemplo «INFORMES TECNICOS Y FOTOS 2026»).</p>
+    <div class="po-botones"><button id="pcElegir">Elegir carpeta del año…</button><button id="pcBuscar" class="primario" disabled>Buscar OT nuevas</button></div>
+    <div id="pcLista" style="margin-top:12px;"></div>
+    <div class="po-botones"><button id="pcCerrar">Cerrar</button><button id="pcGuardar" class="primario" hidden>Guardar</button></div>
+    <p id="pcEstado"></p>
+  </div>
+</div>
+<div id="rotOv" class="po-overlay" style="z-index:5800;" hidden>
+  <div class="po-box" style="max-width:560px;" role="dialog" aria-modal="true" aria-labelledby="rotTitulo">
+    <h3 id="rotTitulo">Revisa la foto</h3>
+    <p>Si la foto salió de lado o al revés, gírala antes de usarla.</p>
+    <div class="rot-caja" id="rotCaja"><img id="rotImg" alt=""></div>
+    <div class="po-botones"><button id="rotIzq" aria-label="Girar a la izquierda">↶ Girar</button><button id="rotDer" aria-label="Girar a la derecha">Girar ↷</button></div>
+    <div class="po-botones"><button id="rotCancelar">Cancelar</button><button id="rotUsar" class="primario">Usar esta foto</button></div>
+  </div>
+</div>
+<div id="fotOtOv" class="po-overlay pc-overlay" hidden>
+  <div class="po-box" role="dialog" aria-modal="true" aria-labelledby="fotOtTitulo">
+    <h3 id="fotOtTitulo">Elige la foto</h3>
+    <p>Toca la foto que corresponde: pasa a ese casillero (no se vuelve a subir). Si el casillero ya tenía una foto, esa queda como foto adicional.</p>
+    <div id="fotOtLista"></div>
+    <div class="po-botones"><button id="fotOtCerrar">Cancelar</button></div>
+    <p id="fotOtEstado" style="font-family:var(--mono);font-size:12.5px;"></p>
+  </div>
+</div>
+<div id="lightbox" class="lightbox" hidden>
+  <button class="lb-x" id="lbCerrar" aria-label="Cerrar foto">✕</button>
+  <div class="lb-zoom">
+    <button id="lbMenos" aria-label="Alejar">−</button>
+    <span class="lb-nivel" id="lbNivel">100%</span>
+    <button id="lbMas" aria-label="Acercar">+</button>
+    <button id="lbAjustar" aria-label="Ajustar a la pantalla">Ajustar</button>
+  </div>
+  <button class="lb-prev" id="lbPrev" aria-label="Foto anterior">‹</button>
+  <img id="lbImg" alt="">
+  <div class="lb-cap" id="lbCap"></div>
+  <button class="lb-next" id="lbNext" aria-label="Foto siguiente">›</button>
+  <div class="lb-acciones" id="lbAcciones" hidden>
+    <button id="lbReemplazar">Reemplazar foto</button>
+    <button id="lbEliminar" class="peligro">Quitar del casillero</button>
+  </div>
+</div>
+
+<!-- ============================================================ NAVEGACIÓN INFERIOR ============================================================ -->
+<button class="fab-save" id="btnSave"><span class="fab-icon"></span><span id="btnSaveLabel">Guardar</span></button>
+
+<nav class="tabbar">
+  <button id="navNew" class="tab-item active"><span class="tab-icon"></span><span>Nuevo</span></button>
+  <button id="navList" class="tab-item"><span class="tab-icon"></span><span>Registros</span><span class="tab-count" id="countBadge">0</span></button>
+  <button id="btnAdmin" class="tab-item"><span class="tab-icon" id="adminIcon"></span><span id="adminLabel">Admin</span></button>
+</nav>
+
+<div class="toast" id="toast"><span class="toast-icon" id="toastIcon"></span><span id="toastMsg">Guardado ✓</span></div>
+<div id="printArea"></div>
+
+<div class="foto-choice-backdrop" id="fotoChoiceBackdrop" onclick="cerrarFotoChoice()"></div>
+<div class="foto-choice-sheet" id="fotoChoiceSheet">
+  <div class="foto-choice-title" id="fotoChoiceTitle">Foto</div>
+  <button class="foto-choice-btn" onclick="dispararCamara()"><span id="fcIconCam"></span>Tomar foto</button>
+  <button class="foto-choice-btn" onclick="dispararGaleria()"><span id="fcIconGal"></span>Elegir de galería</button>
+  <button class="foto-choice-btn" id="fotoChoiceOt" hidden onclick="abrirFotosOT()"><span></span>Elegir de las fotos ya subidas a esta OT</button>
+  <button class="foto-choice-btn cancel" onclick="cerrarFotoChoice()">Cancelar</button>
+</div>
+<input type="file" id="globalCamInput" accept="image/*" capture="environment" style="display:none;">
+<input type="file" id="globalGalInput" accept="image/*" style="display:none;">
+
+<script>
+/* ============================================================
+   INSERCIÓN DE ÍCONOS EN LOS PUNTOS ESTÁTICOS DEL HTML
+   ============================================================ */
+document.querySelectorAll('.card[data-icon]').forEach(card => {
+  card.querySelector('.card-icon').innerHTML = icon(card.dataset.icon);
+});
+const CHEV_SVG = '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M6 9l6 6 6-6"/></svg>';
+document.querySelectorAll('.chev').forEach(el => el.innerHTML = CHEV_SVG);
+document.querySelectorAll('.mini-icon').forEach(el => el.innerHTML = icon(el.classList.contains('foto-ico') ? 'camera' : 'plus'));
+document.getElementById('btnSave').querySelector('.fab-icon').innerHTML = icon('save');
+document.getElementById('navNew').querySelector('.tab-icon').innerHTML = icon('plus');
+document.getElementById('navList').querySelector('.tab-icon').innerHTML = icon('list');
+document.getElementById('adminIcon').innerHTML = icon('lock');
+document.querySelector('.search-icon').innerHTML = icon('search');
+document.getElementById('btnExport').innerHTML = icon('download');
+document.getElementById('btnPc').innerHTML = icon('save');
+document.getElementById('fcIconCam').innerHTML = icon('camera');
+document.getElementById('fcIconGal').innerHTML = icon('image');
+
+/* ============================================================
+   NAV DE SECCIONES (scrollspy) — se construye a partir de las
+   tarjetas marcadas con data-jump
+   ============================================================ */
+const jumpSections = [...document.querySelectorAll('.card[data-jump]')];
+const sectionNav = document.getElementById('sectionNav');
+sectionNav.innerHTML = jumpSections.map((s,i) => `
+  <button data-target="${s.id}" class="${i===0?'active':''}">${icon(s.dataset.icon)}<span>${s.dataset.jump}</span></button>
+`).join('');
+sectionNav.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById(btn.dataset.target).scrollIntoView({behavior:'smooth', block:'start'});
+  });
+});
+const spy = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if(entry.isIntersecting){
+      sectionNav.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.target === entry.target.id));
+      const activeBtn = sectionNav.querySelector('button.active');
+      if(activeBtn) activeBtn.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+    }
+  });
+}, { rootMargin: '-10% 0px -75% 0px' });
+jumpSections.forEach(s => spy.observe(s));
+
+/* ============================================================
+   MODELO DE DATOS (idéntico al esquema ya creado en D1)
+   ============================================================ */
+const COMPONENT_FIELDS_TEMPLATE = () => ({
+  nombre: '', equipo:'', uso:'', codigoEquipo:'', marca:'', modelo:'', serie:'',
+  potencia:'', corriente:'', voltaje:'', frecuencia:'', rpm:'', acoplamiento:'',
+  rodamiento:'', rodamientoReductor:'', retenes:'', retenesReductor:'', selloMecanico:'', impulsor:'', diamImpulsor:'',
+  selloCuerpoEmpaquetadura:'', selloCuerpoOring:'', medidaTuerca:'',
+  diamSuccion:'', diamDescarga:'', altura:'', lubricante:'', cantLubricante:'',
+  motorQuemado:false, ventiladorDañado:false, encamizado:false, encamizadoValor:'', observacion:''
+});
+
+let state = {
+  checkIn: [
+    {label:'EQUIPO COMPLETO (SIN PIEZAS FALTANTES)', checked:false},
+    {label:'SIN DAÑOS VISIBLES EXTERNOS', checked:false},
+    {label:'PLACA DE DATOS LEGIBLE', checked:false},
+  ],
+  checkOut: [
+    {label:'EQUIPO PROBADO Y FUNCIONANDO', checked:false},
+    {label:'LIMPIEZA FINAL REALIZADA', checked:false},
+  ],
+  componentes: [ {...COMPONENT_FIELDS_TEMPLATE(), nombre:'MOTOR'}, {...COMPONENT_FIELDS_TEMPLATE(), nombre:'BOMBA'} ],
+  activeComp: 0,
+  repuestos: [],
+  aislacion: ['L1','L2','L3','L1 - L2','L1 - L3','L2 - L3'].map(label => ({label, kOhm1:'', mOhm1:'', gOhm1:'1 T', voltaje1:''}))
+};
+
+document.getElementById('f_fecha').value = new Date().toISOString().slice(0,10);
+document.getElementById('f_sugerencia').value = 'REALIZAR MANTENIMIENTO PREVENTIVO ANUAL';
+
+/* ---------- Checklist ---------- */
+function renderChecklist(key, containerId){
+  const el = document.getElementById(containerId);
+  el.innerHTML = state[key].map((item, i) => `
+    <div class="check-row">
+      <input type="checkbox" ${item.checked?'checked':''} onchange="toggleCheck('${key}', ${i}, this.checked)">
+      <span>${item.label}</span>
+      <button class="del-btn" onclick="removeCheck('${key}', ${i})" title="Eliminar">${icon('close')}</button>
+    </div>`).join('');
+}
+function toggleCheck(key, i, val){ state[key][i].checked = val; }
+function removeCheck(key, i){ state[key].splice(i,1); renderChecklist(key, key==='checkIn'?'checkIn':'checkOut'); }
+function addCheckItem(which){
+  const inputId = which === 'in' ? 'checkInNew' : 'checkOutNew';
+  const key = which === 'in' ? 'checkIn' : 'checkOut';
+  const containerId = which === 'in' ? 'checkIn' : 'checkOut';
+  const val = document.getElementById(inputId).value.trim();
+  if(!val) return;
+  state[key].push({label:val, checked:false});
+  document.getElementById(inputId).value = '';
+  renderChecklist(key, containerId);
+}
+renderChecklist('checkIn','checkIn');
+renderChecklist('checkOut','checkOut');
+
+/* ---------- Componentes (Motor/Bomba) ---------- */
+function renderCompSwitch(){
+  const el = document.getElementById('compSwitch');
+  el.innerHTML = state.componentes.map((c,i) => `<button class="${i===state.activeComp?'active':''}" onclick="setActiveComp(${i})">${c.nombre || 'Componente '+(i+1)}</button>`).join('');
+}
+function setActiveComp(i){ state.activeComp = i; renderCompSwitch(); renderCompPanes(); }
+
+function fieldRow(label, compIdx, key, opts){
+  opts = opts || {};
+  const val = state.componentes[compIdx][key] ?? '';
+  return `<div class="field ${opts.span2?'span2':''}"><label>${label}</label>
+    <input type="text" value="${val.replace(/"/g,'&quot;')}" oninput="updateComp(${compIdx}, '${key}', this.value)" placeholder="${opts.ph||''}"></div>`;
+}
+
+function renderCompPanes(){
+  const el = document.getElementById('compPanes');
+  const i = state.activeComp;
+  const c = state.componentes[i];
+  el.innerHTML = `
+    <fieldset>
+      <legend>Identificación</legend>
+      <div class="grid2">
+        ${fieldRow('Equipo', i, 'equipo', {ph:'MOTOVENTILADOR'})}
+        ${fieldRow('Uso', i, 'uso', {ph:'HORNO L-3'})}
+        ${fieldRow('Código / N° equipo', i, 'codigoEquipo')}
+        ${fieldRow('Marca', i, 'marca')}
+        ${fieldRow('Modelo', i, 'modelo')}
+        ${fieldRow('Serie', i, 'serie')}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Eléctrico</legend>
+      <div class="grid2">
+        ${fieldRow('Potencia', i, 'potencia', {ph:'3 KW'})}
+        ${fieldRow('Corriente', i, 'corriente', {ph:'6.4 AMP'})}
+        ${fieldRow('Voltaje', i, 'voltaje', {ph:'380 V'})}
+        ${fieldRow('Frecuencia', i, 'frecuencia', {ph:'50 HZ'})}
+        ${fieldRow('RPM', i, 'rpm', {ph:'2880 RPM'})}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Mecánico</legend>
+      <div class="grid2">
+        ${fieldRow('N° rodamiento', i, 'rodamiento', {ph:'6206 2RSC3 - 6206 F'})}
+        ${fieldRow('Rod. reductor', i, 'rodamientoReductor')}
+        ${fieldRow('Retenes', i, 'retenes', {ph:'30X40X4'})}
+        ${fieldRow('Retenes reductor', i, 'retenesReductor')}
+        ${fieldRow('Sello mecánico', i, 'selloMecanico')}
+        ${fieldRow('Diámetro del impulsor', i, 'diamImpulsor')}
+        ${fieldRow('Medida tuerca impulsor', i, 'medidaTuerca')}
+      </div>
+      <div class="field" style="margin-top:4px;">
+        <label>Impulsor</label>
+        <div class="radio-row">
+          <label><input type="radio" name="impulsor${i}" value="Abierto" ${c.impulsor==='Abierto'?'checked':''} onchange="updateComp(${i},'impulsor','Abierto')"> Abierto</label>
+          <label><input type="radio" name="impulsor${i}" value="Cerrado" ${c.impulsor==='Cerrado'?'checked':''} onchange="updateComp(${i},'impulsor','Cerrado')"> Cerrado</label>
+        </div>
+      </div>
+      <div class="field" style="margin-top:4px;">
+        <label>Sello cuerpo BBA</label>
+        <div class="grid2" style="margin-top:6px;">
+          <div class="field"><label>Empaquetadura</label><input type="text" value="${(c.selloCuerpoEmpaquetadura||'').replace(/"/g,'&quot;')}" oninput="updateComp(${i},'selloCuerpoEmpaquetadura',this.value)" placeholder="Ej: DIN 70, DIN 50"></div>
+          <div class="field"><label>O'Ring N°</label><input type="text" value="${(c.selloCuerpoOring||'').replace(/"/g,'&quot;')}" oninput="updateComp(${i},'selloCuerpoOring',this.value)" placeholder="Ej: 2-449"></div>
+        </div>
+        <div class="hint">Puedes completar ambos si el equipo lleva los dos.</div>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Observaciones</legend>
+      <div class="obs-flag"><input type="checkbox" ${c.motorQuemado?'checked':''} onchange="updateComp(${i},'motorQuemado',this.checked)"><span>Motor quemado</span></div>
+      <div class="obs-flag"><input type="checkbox" ${c.ventiladorDañado?'checked':''} onchange="updateComp(${i},'ventiladorDañado',this.checked)"><span>Ventilador dañado</span></div>
+      <div class="obs-flag">
+        <input type="checkbox" ${c.encamizado?'checked':''} onchange="updateComp(${i},'encamizado',this.checked)"><span>Encamizado</span>
+        <input type="text" value="${(c.encamizadoValor||'').replace(/"/g,'&quot;')}" oninput="updateComp(${i},'encamizadoValor',this.value)" placeholder="detalle">
+      </div>
+      <textarea style="margin-top:6px;" oninput="updateComp(${i},'observacion',this.value)" placeholder="Otras observaciones del componente...">${c.observacion||''}</textarea>
+    </fieldset>
+  `;
+}
+function updateComp(i, key, val){
+  state.componentes[i][key] = val;
+  // El nombre del Motor (componente 0) define la etiqueta de los dos primeros casilleros de fotos
+  if(i === 0 && key === 'equipo') renderFotosList(currentFotos);
+}
+renderCompSwitch();
+renderCompPanes();
+
+/* ---------- Repuestos ---------- */
+function renderRepuestos(){
+  const el = document.getElementById('repuestosList');
+  if(state.repuestos.length === 0){ el.innerHTML = '<div class="empty-hint">Sin repuestos agregados aún.</div>'; return; }
+  el.innerHTML = state.repuestos.map((r,i) => `
+    <div class="repuesto-row">
+      <div class="rr-text"><b>${r.componente||'—'}</b><span>${r.descripcion||''}</span></div>
+      <div class="rr-qty">${r.cantidad||''}</div>
+      <button class="del-btn" onclick="removeRepuesto(${i})">${icon('close')}</button>
+    </div>`).join('');
+}
+function addRepuesto(){
+  const componente = document.getElementById('repComponente').value.trim();
+  const descripcion = document.getElementById('repDescripcion').value.trim();
+  const cantidad = document.getElementById('repCantidad').value.trim();
+  if(!componente && !descripcion) return;
+  state.repuestos.push({componente, descripcion, cantidad});
+  document.getElementById('repComponente').value='';
+  document.getElementById('repDescripcion').value='';
+  document.getElementById('repCantidad').value='';
+  renderRepuestos();
+}
+function removeRepuesto(i){ state.repuestos.splice(i,1); renderRepuestos(); }
+renderRepuestos();
+
+/* ---------- Mantención eléctrica ---------- */
+function toggleElectrica(checked){ document.getElementById('electricaBlock').style.display = checked ? 'block' : 'none'; }
+
+function renderAislacionTable(){
+  const el = document.getElementById('aislacionTable');
+  el.innerHTML = state.aislacion.map((r,i) => `
+    <div class="aislacion-row">
+      <div class="aislacion-row-label">${r.label}</div>
+      <div class="prueba-grid">
+        <div class="mf"><label>KΩ</label><input value="${r.kOhm1}" oninput="updateAislacion(${i},'kOhm1',this.value)"></div>
+        <div class="mf"><label>MΩ</label><input value="${r.mOhm1}" oninput="updateAislacion(${i},'mOhm1',this.value)"></div>
+        <div class="mf"><label>GΩ</label><input value="${r.gOhm1}" oninput="updateAislacion(${i},'gOhm1',this.value)"></div>
+        <div class="mf"><label>Voltaje</label><input value="${r.voltaje1}" oninput="updateAislacion(${i},'voltaje1',this.value)"></div>
+      </div>
+    </div>`).join('');
+}
+function updateAislacion(i,key,val){ state.aislacion[i][key] = val; }
+renderAislacionTable();
+
+
+
+/* ---------- Tarjetas colapsables ---------- */
+document.querySelectorAll('.card-head').forEach(h => {
+  h.addEventListener('click', () => h.parentElement.classList.toggle('collapsed'));
+});
+
+/* ---------- Toast ---------- */
+function showToast(msg, tipo){
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').innerHTML = icon(tipo === 'error' ? 'alert' : 'check-circle');
+  t.classList.toggle('toast-error', tipo === 'error');
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>t.classList.remove('show'), tipo === 'error' ? 3200 : 1800);
+}
+
+/* ---------- Validación ---------- */
+const REQUIRED_FIELDS = [
+  { id: 'f_ot', label: 'O.T.' },
+  { id: 'f_cliente', label: 'Cliente' },
+  { id: 'f_fecha', label: 'Fecha' }
+];
+function limpiarErroresValidacion(){
+  REQUIRED_FIELDS.forEach(f => document.getElementById(f.id).classList.remove('input-error'));
+}
+function validarFormulario(){
+  limpiarErroresValidacion();
+  const faltantes = REQUIRED_FIELDS.filter(f => !document.getElementById(f.id).value.trim());
+  if(faltantes.length){
+    faltantes.forEach(f => document.getElementById(f.id).classList.add('input-error'));
+    showToast(`Falta completar: ${faltantes.map(f=>f.label).join(', ')}`, 'error');
+    document.getElementById('sec-datos').scrollIntoView({behavior:'smooth', block:'start'});
+    document.getElementById(faltantes[0].id).focus();
+    return false;
+  }
+  return true;
+}
+REQUIRED_FIELDS.forEach(f => {
+  document.getElementById(f.id).addEventListener('input', () => document.getElementById(f.id).classList.remove('input-error'));
+});
+
+/* ---------- Guardar registro (API D1) ---------- */
+function collectRecord(existingId){
+  return {
+    id: existingId || ('rec_' + Date.now()),
+    ot: document.getElementById('f_ot').value,
+    cot: document.getElementById('f_cot').value,
+    codigoEquipo: document.getElementById('f_codigo').value,
+    fecha: document.getElementById('f_fecha').value,
+    cliente: document.getElementById('f_cliente').value,
+    guia: document.getElementById('f_guia').value,
+    tecnico: document.getElementById('f_tecnico').value,
+    diagnostico: document.getElementById('f_diagnostico').value,
+    obsGeneral: document.getElementById('f_obsGeneral').value,
+    checkIn: state.checkIn,
+    checkOut: state.checkOut,
+    componentes: state.componentes,
+    repuestos: state.repuestos,
+    descripcionTrabajo: document.getElementById('f_descripcionTrabajo').value,
+    conclusion: document.getElementById('f_conclusion').value,
+    sugerencia: document.getElementById('f_sugerencia').value,
+    medidaCorrectiva: document.getElementById('f_medidaCorrectiva').value,
+    aplicaElectrica: document.getElementById('f_aplicaElectrica').checked,
+    electrica: {
+      conexion: (document.querySelector('input[name=e_conexion]:checked')||{}).value || 'ESTRELLA',
+      continuidad: document.getElementById('e_continuidad').value,
+      aislacion: state.aislacion,
+      obsAislacion: document.getElementById('e_obsAislacion').value,
+      u1u2: document.getElementById('e_u1u2').value,
+      v1v2: document.getElementById('e_v1v2').value,
+      w1w2: document.getElementById('e_w1w2').value,
+      obsResistencia: document.getElementById('e_obsResistencia').value,
+      r: document.getElementById('e_r').value,
+      s: document.getElementById('e_s').value,
+      t: document.getElementById('e_t').value,
+      obsCorriente: document.getElementById('e_obsCorriente').value,
+      concBobinado: (document.querySelector('input[name=e_concBobinado]:checked')||{}).value || '',
+      obsBobinado: document.getElementById('e_obsBobinado').value,
+      concPlaca: (document.querySelector('input[name=e_concPlaca]:checked')||{}).value || '',
+      obsPlaca: document.getElementById('e_obsPlaca').value
+    },
+    savedAt: new Date().toISOString()
+  };
+}
+
+/* ---------- OT repetida en "Nuevo": si el N° ya existe, se abre su ÚLTIMA versión para seguir editándola ---------- */
+let _otAvisoSeq = 0, _otSuprimida = '';
+function ocultarAvisoOt(){ _otAvisoSeq++; const b = document.getElementById('otAviso'); if(b){ b.hidden = true; b.innerHTML = ''; } }
+function formularioConDatos(){ return ['f_cliente','f_diagnostico','f_tecnico','f_codigo','f_guia','f_cot'].some(i => (document.getElementById(i).value || '').trim()); }
+async function revisarOtRepetida(){
+  const b = document.getElementById('otAviso'), ot = document.getElementById('f_ot').value.trim();
+  const mia = ++_otAvisoSeq;
+  if(!ot || ot.length < 3 || window.editingId || ot === _otSuprimida){ b.hidden = true; b.innerHTML = ''; return; }
+  const { data, error } = await api('/ingresos?ot=' + encodeURIComponent(ot));
+  if(mia !== _otAvisoSeq) return;
+  if(error || !data || !data.length || window.editingId){ b.hidden = true; b.innerHTML = ''; return; }
+  // la más reciente: por fecha y, si empatan, por la última vez que se guardó
+  const filas = data.slice().sort((x, y) => String(y.fecha || '').localeCompare(String(x.fecha || '')) || String(y.created_at || '').localeCompare(String(x.created_at || '')));
+  if(formularioConDatos() && !confirm(`La OT ${ot} ya existe (${fmtDate(filas[0].fecha)} · ${filas[0].cliente || 'sin cliente'}).\n\n¿Abrir su última versión para seguir editándola? Se reemplaza lo que escribiste en el formulario.`)){
+    _otSuprimida = ot; b.hidden = true; b.innerHTML = ''; return;
+  }
+  await abrirUltimaDeOt(filas);
+}
+async function abrirUltimaDeOt(filas){
+  const ot = filas[0].ot;
+  await editRecord(filas[0].id);
+  if(window.editingId !== filas[0].id) return;       // no se pudo cargar
+  const b = document.getElementById('otAviso');
+  const otras = filas.slice(1);
+  b.hidden = false;
+  b.innerHTML = `<div><b>📂 Se abrió la última versión de la OT ${escH(ot)}</b> (${escH(fmtDate(filas[0].fecha))} · ${escH(filas[0].cliente || 'Sin cliente')}). Sigue editándola y pulsa Guardar para actualizarla.</div>` +
+    otras.map(r => `<div class="ot-v"><span class="t">También existe la del ${escH(fmtDate(r.fecha))} · ${escH(r.cliente || 'Sin cliente')}</span><button type="button" onclick="abrirVersionDeOt('${escH(r.id)}')">Abrir esa</button></div>`).join('') +
+    `<div class="ot-v"><span class="t">¿Es otro trabajo con el mismo número?</span><button type="button" onclick="nuevaConMismoNumero('${escH(filas[0].id)}')">Crear una OT nueva con este número</button></div>`;
+  showToast('OT ' + ot + ': se abrió la última versión guardada');
+}
+async function abrirVersionDeOt(id){
+  const b = document.getElementById('otAviso'), previo = b.innerHTML;
+  await editRecord(id);
+  if(window.editingId !== id) return;
+  b.hidden = false; b.innerHTML = '<div><b>📂 Abierta otra versión de esta OT.</b> Sigue editándola y pulsa Guardar para actualizarla.</div>';
+}
+// Para cuando el mismo número se usa de nuevo (otro semestre/año): parte una OT nueva y trae solo los datos del equipo.
+async function nuevaConMismoNumero(idBase){
+  const ot = document.getElementById('f_ot').value.trim();
+  resetForm();
+  document.getElementById('f_ot').value = ot;
+  _otSuprimida = ot;
+  await copiarDatosDeOt(idBase);
+}
+document.getElementById('f_ot').addEventListener('change', () => { revisarOtRepetida(); });
+
+// Copia a la OT NUEVA (no toca la anterior) los datos del equipo: cliente, código, equipo y la ficha de cada componente (placa, rodamientos, sellos...).
+// NO copia lo del trabajo de aquel día: descripción, conclusión, mediciones eléctricas, repuestos, listas de chequeo, fotos, guía ni C.O.T.
+async function copiarDatosDeOt(id){
+  const { data, error } = await api('/ingresos/' + id + '?join=full');
+  if(error || !data){ showToast('No se pudo cargar la OT anterior', 'error'); return; }
+  const rec = mapFromSupabase(data);
+  window.editingId = null;
+  const poner = (idc, v) => { const e = document.getElementById(idc); if(e) e.value = v || ''; };
+  poner('f_cliente', rec.cliente); poner('f_codigo', rec.codigoEquipo); poner('f_diagnostico', rec.diagnostico);
+  const vieja = rec.componentes || [];
+  const motor = vieja.find(c => c.nombre === 'MOTOR'), bomba = vieja.find(c => c.nombre === 'BOMBA');
+  const limpia = (c, nombre) => ({ ...COMPONENT_FIELDS_TEMPLATE(), ...(c || {}), nombre,
+    motorQuemado: false, ventiladorDañado: false, encamizado: false, encamizadoValor: '', observacion: '' });
+  state.componentes = [limpia(motor || vieja[0], 'MOTOR'), limpia(bomba || vieja[1], 'BOMBA')];
+  state.activeComp = 0;
+  renderCompSwitch(); renderCompPanes();
+  ocultarAvisoOt();
+  showToast('Datos copiados de la OT del ' + fmtDate(rec.fecha) + '. Revísalos y completa el trabajo.');
+}
+
+async function saveRecord(){
+  if(!validarFormulario()) return;
+  const btn = document.getElementById('btnSave');
+  const label = document.getElementById('btnSaveLabel');
+  const textoOriginal = label.textContent;
+  btn.disabled = true;
+  label.textContent = 'Guardando...';
+  const rec = collectRecord(window.editingId);
+  const payload = {
+    ot: rec.ot, cot: rec.cot, codigo_equipo: rec.codigoEquipo, cliente: rec.cliente,
+    fecha: rec.fecha || null, guia: rec.guia, tecnico: rec.tecnico, diagnostico: rec.diagnostico,
+    obs_general: rec.obsGeneral, descripcion_trabajo: rec.descripcionTrabajo,
+    conclusion: rec.conclusion, sugerencia: rec.sugerencia, medida_correctiva: rec.medidaCorrectiva,
+    aplica_electrica: rec.aplicaElectrica, electrica: rec.electrica,
+    check_in: rec.checkIn, check_out: rec.checkOut
+  };
+  try{
+    if(rec.ot){
+      let dupPath = '/ingresos?ot=' + encodeURIComponent(rec.ot);
+      if(window.editingId) dupPath += '&exclude_id=' + encodeURIComponent(window.editingId);
+      const { data: dup } = await api(dupPath);
+      if(dup && dup.length){
+        if(!confirm(`Ya existe otro registro con la OT ${rec.ot}. ¿Guardar de todas formas?`)){
+          btn.disabled = false; label.textContent = textoOriginal;
+          return;
+        }
+      }
+    }
+    // Todo se guarda en UNA sola llamada (todo o nada): si se corta internet a la mitad,
+    // no queda una OT a medias sin componentes.
+    const componentesPayload = rec.componentes.map(c => ({
+        nombre: c.nombre, equipo: c.equipo, uso: c.uso, codigo_equipo: c.codigoEquipo,
+        marca: c.marca, modelo: c.modelo, serie: c.serie, potencia: c.potencia, corriente: c.corriente,
+        voltaje: c.voltaje, frecuencia: c.frecuencia, rpm: c.rpm, acoplamiento: c.acoplamiento,
+        rodamiento: c.rodamiento, rod_reductor: c.rodamientoReductor, retenes: c.retenes, retenes_reductor: c.retenesReductor, sello_mecanico: c.selloMecanico, impulsor: c.impulsor,
+        diam_impulsor: c.diamImpulsor, sello_cuerpo_empaquetadura: c.selloCuerpoEmpaquetadura, sello_cuerpo_oring: c.selloCuerpoOring,
+        medida_tuerca: c.medidaTuerca, diam_succion: c.diamSuccion, diam_descarga: c.diamDescarga, altura: c.altura,
+        lubricante: c.lubricante, cant_lubricante: c.cantLubricante, motor_quemado: c.motorQuemado,
+        ventilador_danado: c.ventiladorDañado, encamizado: c.encamizado, encamizado_valor: c.encamizadoValor,
+        observacion: c.observacion
+    }));
+    const repuestosPayload = rec.repuestos.map(r => ({ componente: r.componente, descripcion: r.descripcion, cantidad: r.cantidad }));
+    const { data: guardado, error } = await api('/guardar', { method:'POST', body: {
+      id: window.editingId || undefined, ingreso: payload, componentes: componentesPayload, repuestos: repuestosPayload
+    }});
+    if(error) throw error;
+    const ingresoId = guardado.id;
+    window.editingId = ingresoId;
+    ocultarAvisoOt();
+    await refreshFotos(ingresoId);
+    showToast('Registro guardado ✓');
+    await refreshCount();
+  }catch(e){
+    console.error(e);
+    showToast('Error al guardar: ' + (e.message || 'revisa tu conexión e inténtalo de nuevo'), 'error');
+  }finally{
+    btn.disabled = false;
+    label.textContent = textoOriginal;
+  }
+}
+document.getElementById('btnSave').addEventListener('click', saveRecord);
+
+function resetForm(){
+  window.editingId = null; ocultarAvisoOt(); _otSuprimida = '';
+  renderFotosList([]);
+  document.getElementById('f_ot').value='';
+  document.getElementById('f_cot').value='';
+  document.getElementById('f_codigo').value='';
+  document.getElementById('f_cliente').value='';
+  document.getElementById('f_guia').value='';
+  document.getElementById('f_tecnico').value='';
+  document.getElementById('f_diagnostico').value='';
+  document.getElementById('f_obsGeneral').value='';
+  document.getElementById('f_fecha').value = new Date().toISOString().slice(0,10);
+  limpiarErroresValidacion();
+  state.checkIn = [{label:'EQUIPO COMPLETO (SIN PIEZAS FALTANTES)', checked:false},{label:'SIN DAÑOS VISIBLES EXTERNOS', checked:false},{label:'PLACA DE DATOS LEGIBLE', checked:false}];
+  state.checkOut = [{label:'EQUIPO PROBADO Y FUNCIONANDO', checked:false},{label:'LIMPIEZA FINAL REALIZADA', checked:false}];
+  state.componentes = [ {...COMPONENT_FIELDS_TEMPLATE(), nombre:'MOTOR'}, {...COMPONENT_FIELDS_TEMPLATE(), nombre:'BOMBA'} ];
+  state.activeComp = 0;
+  state.repuestos = [];
+  state.aislacion = ['L1','L2','L3','L1 - L2','L1 - L3','L2 - L3'].map(label => ({label, kOhm1:'', mOhm1:'', gOhm1:'1 T', voltaje1:''}));
+  document.getElementById('f_descripcionTrabajo').value='';
+  document.getElementById('f_conclusion').value='';
+  document.getElementById('f_sugerencia').value='REALIZAR MANTENIMIENTO PREVENTIVO ANUAL';
+  document.getElementById('f_medidaCorrectiva').value='';
+  document.getElementById('f_aplicaElectrica').checked=false;
+  toggleElectrica(false);
+  document.querySelectorAll('input[name=e_conexion]').forEach(r => r.checked = (r.value === 'ESTRELLA'));
+  document.getElementById('e_continuidad').value='';
+  document.getElementById('e_obsAislacion').value='';
+  document.getElementById('e_u1u2').value='';
+  document.getElementById('e_v1v2').value='';
+  document.getElementById('e_w1w2').value='';
+  document.getElementById('e_obsResistencia').value='';
+  document.getElementById('e_r').value='';
+  document.getElementById('e_s').value='';
+  document.getElementById('e_t').value='';
+  document.getElementById('e_obsCorriente').value='';
+  document.getElementById('e_obsBobinado').value='';
+  document.getElementById('e_obsPlaca').value='';
+  document.querySelectorAll('input[name=e_concBobinado]').forEach(r=>r.checked=false);
+  document.querySelectorAll('input[name=e_concPlaca]').forEach(r=>r.checked=false);
+  renderChecklist('checkIn','checkIn');
+  renderChecklist('checkOut','checkOut');
+  renderCompSwitch();
+  renderCompPanes();
+  renderRepuestos();
+  renderAislacionTable();
+}
+
+// Todos los registros completos (solo para exportar a CSV). Se piden de a 100 para no sobrecargar el servidor.
+async function listAllRecords(){
+  try{
+    const todos = [];
+    for(let offset = 0; ; offset += 100){
+      const { data, error } = await api(`/ingresos?join=full&limit=100&offset=${offset}`);
+      if(error) throw error;
+      todos.push(...data.map(mapFromSupabase));
+      if(data.length < 100) break;
+    }
+    return todos;
+  }catch(e){ console.error(e); return []; }
+}
+
+function mapFromSupabase(row){
+  return {
+    id: row.id, ot: row.ot, cot: row.cot, codigoEquipo: row.codigo_equipo, cliente: row.cliente,
+    fecha: row.fecha, guia: row.guia, tecnico: row.tecnico, diagnostico: row.diagnostico,
+    obsGeneral: row.obs_general, descripcionTrabajo: row.descripcion_trabajo, conclusion: row.conclusion,
+    sugerencia: row.sugerencia, medidaCorrectiva: row.medida_correctiva, aplicaElectrica: row.aplica_electrica,
+    electrica: row.electrica || {}, checkIn: row.check_in || [], checkOut: row.check_out || [],
+    componentes: (row.componentes||[]).map(c => ({
+      nombre: c.nombre, equipo: c.equipo, uso: c.uso, codigoEquipo: c.codigo_equipo, marca: c.marca, modelo: c.modelo,
+      serie: c.serie, potencia: c.potencia, corriente: c.corriente, voltaje: c.voltaje, frecuencia: c.frecuencia,
+      rpm: c.rpm, acoplamiento: c.acoplamiento, rodamiento: c.rodamiento, rodamientoReductor: c.rod_reductor, retenes: c.retenes, retenesReductor: c.retenes_reductor,
+      selloMecanico: c.sello_mecanico, impulsor: c.impulsor, diamImpulsor: c.diam_impulsor,
+      selloCuerpoEmpaquetadura: c.sello_cuerpo_empaquetadura || (c.sello_cuerpo_tipo === 'Empaquetadura' ? c.sello_cuerpo_valor : '') || '',
+      selloCuerpoOring: c.sello_cuerpo_oring || (c.sello_cuerpo_tipo === 'Oring' ? c.sello_cuerpo_valor : '') || '',
+      medidaTuerca: c.medida_tuerca,
+      diamSuccion: c.diam_succion, diamDescarga: c.diam_descarga, altura: c.altura, lubricante: c.lubricante,
+      cantLubricante: c.cant_lubricante, motorQuemado: c.motor_quemado, ventiladorDañado: c.ventilador_danado,
+      encamizado: c.encamizado, encamizadoValor: c.encamizado_valor, observacion: c.observacion
+    })),
+    repuestos: (row.repuestos||[]).map(r => ({ componente: r.componente, descripcion: r.descripcion, cantidad: r.cantidad })),
+    fotos: row.fotos || [],
+    savedAt: row.created_at
+  };
+}
+
+// Actualiza el contador de la barra de abajo y el menú de clientes (una consulta corta, sin traer las OT)
+async function refreshCount(){
+  await cargarClientes(true);
+  return clientesInfo;
+}
+
+function fmtDate(d){ if(!d) return '—'; const parts = d.split('-'); return parts.length===3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d; }
+
+function skeletonHTML(n){
+  return Array.from({length:n}).map(() => `
+    <div class="skeleton">
+      <div class="sk-line" style="width:40%;"></div>
+      <div class="sk-line" style="width:65%;"></div>
+      <div class="sk-line" style="width:50%; margin-bottom:0;"></div>
+    </div>`).join('');
+}
+
+/* Evita que un texto con símbolos (< > & ") rompa la pantalla o se interprete como HTML */
+function escH(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escRec(o){
+  if(typeof o === 'string') return escH(o);
+  if(Array.isArray(o)) return o.map(escRec);
+  if(o && typeof o === 'object'){ const r = {}; for(const k in o) r[k] = (k === 'storage_path') ? o[k] : escRec(o[k]); return r; }
+  return o;
+}
+
+/* ---------- Lista de registros: por páginas, con filtro por cliente ----------
+   La lista NO trae todas las OT: pide al servidor de a 50 tarjetas (con lo justo que muestra cada una) y el detalle
+   completo solo al abrir una OT. Así abrir Registros lee unas pocas filas de la base en vez de decenas de miles
+   (el plan gratis de la base permite solo 5 millones de lecturas por día). */
+const PAGINA_LISTA = 50;
+let listaVisible = [];       // tarjetas ya cargadas, en el orden mostrado (más recientes primero)
+let listaTotal = 0;          // cuántas OT cumplen el filtro actual (cargadas o no)
+let clientesInfo = null, clientesInfoHasta = 0;   // [{clave, nombre, n, crudos:[nombres tal como están guardados]}] + total
+let otExacta = '';              // si tiene valor, la lista muestra solo las versiones (todos los años) de esa OT
+let _solicitudLista = 0;     // para ignorar respuestas viejas si el usuario sigue escribiendo
+const _detalles = new Map(); // detalle completo de las últimas OT abiertas en el visor
+function normCliente(s){ return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/\s+/g, ' ').trim(); }
+function claveCliente(r){ return normCliente(r.cliente) || '__sin__'; }
+
+// Nombres de cliente y cuántas OT tiene cada uno (una consulta corta). Nombres casi iguales (mayúsculas, tildes,
+// espacios) se juntan en una sola entrada del menú; al elegirla se piden al servidor todas sus variantes.
+async function cargarClientes(forzar){
+  if(!forzar && clientesInfo && Date.now() < clientesInfoHasta) return clientesInfo;
+  const { data, error } = await api('/clientes');
+  if(error){ console.error(error); return clientesInfo; }
+  const grupos = new Map();
+  let total = 0;
+  for(const f of (data || [])){
+    const k = normCliente(f.cliente) || '__sin__';
+    const g = grupos.get(k) || { clave: k, nombre: '', mayor: 0, n: 0, crudos: [] };
+    g.n += f.n; total += f.n;
+    if(f.cliente && String(f.cliente).trim()){ g.crudos.push(f.cliente); if(f.n > g.mayor){ g.mayor = f.n; g.nombre = String(f.cliente).trim(); } }
+    grupos.set(k, g);
+  }
+  const lista = [...grupos.values()].map(g => ({ ...g, nombre: g.nombre || '(Sin cliente)' })).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  clientesInfo = Object.assign(lista, { total });
+  clientesInfoHasta = Date.now() + 60000;
+  document.getElementById('countBadge').textContent = total;
+  actualizarFiltroClientes();
+  return clientesInfo;
+}
+// Arma el menú de clientes con la cantidad de OT de cada uno (mantiene la selección actual)
+function actualizarFiltroClientes(){
+  const sel = document.getElementById('clienteFiltro');
+  if(!clientesInfo) return;
+  const previo = sel.value;
+  sel.innerHTML = `<option value="">Todos los clientes (${clientesInfo.total})</option>` + clientesInfo.map(g => `<option value="${escH(g.clave)}">${escH(g.nombre)} (${g.n})</option>`).join('');
+  sel.value = clientesInfo.some(g => g.clave === previo) ? previo : '';
+}
+
+function filaDeLista(r){
+  return { id: r.id, ot: r.ot, cliente: r.cliente, fecha: r.fecha, tecnico: r.tecnico, diagnostico: r.diagnostico,
+           aplicaElectrica: !!r.aplica_electrica, nFotos: r.n_fotos || 0, otrosAnios: (r.otros_anios || '').split(',').map(s => s.trim()).filter(Boolean), comps: (r.comps || '').split(',').map(s => s.trim()).filter(Boolean) };
+}
+function parametrosLista(offset){
+  const p = new URLSearchParams();
+  p.set('limit', PAGINA_LISTA); p.set('offset', offset);
+  const q = (document.getElementById('searchBox').value || '').trim();
+  if(q) p.set('q', q);
+  if(otExacta) p.set('ot_exacta', otExacta);
+  const clave = document.getElementById('clienteFiltro').value;
+  if(clave){
+    if(clave === '__sin__') p.set('sin_cliente', '1');
+    const g = clientesInfo && clientesInfo.find(x => x.clave === clave);
+    if(g) g.crudos.slice(0, 40).forEach(c => p.append('cliente', c));
+  }
+  return p;
+}
+function hayFiltros(){ return !!(otExacta || (document.getElementById('searchBox').value || '').trim() || document.getElementById('clienteFiltro').value); }
+
+// renderList(): vuelve a pedir la primera página con los filtros actuales.
+// renderList(true): solo vuelve a dibujar lo ya cargado (sin consultar), p. ej. al entrar o salir del modo administrador.
+async function renderList(soloDibujar){
+  const el = document.getElementById('recList');
+  if(soloDibujar === true && listaVisible.length){ pintarLista(); return; }
+  const mia = ++_solicitudLista;
+  _detalles.clear();                                      // si algo cambió (se editó, se borró…) el visor vuelve a pedir el detalle
+  el.innerHTML = skeletonHTML(3);
+  await cargarClientes(false);
+  const { data, error } = await api('/lista?' + parametrosLista(0));
+  if(mia !== _solicitudLista) return;                     // llegó tarde: el usuario ya cambió el filtro
+  if(error || !data){
+    listaVisible = []; listaTotal = 0;
+    document.getElementById('listaResumen').textContent = '';
+    el.innerHTML = `<div class="empty-state">${icon('inbox')}<p><b>No se pudo cargar la lista.</b><br>${escH((error && error.message) || 'Error de conexión')}<br><button class="ver-chip accion" style="margin-top:12px;" onclick="renderList()">Reintentar</button></p></div>`;
+    return;
+  }
+  listaVisible = data.filas.map(filaDeLista); listaTotal = data.total;
+  pintarLista();
+}
+async function cargarMasLista(){
+  const btn = document.getElementById('btnMasLista'); if(btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
+  const mia = _solicitudLista;
+  const { data, error } = await api('/lista?' + parametrosLista(listaVisible.length));
+  if(mia !== _solicitudLista) return;
+  if(error || !data){ showToast('No se pudieron cargar más OT: ' + ((error && error.message) || 'error'), 'error'); pintarLista(); return; }
+  listaVisible.push(...data.filas.map(filaDeLista)); listaTotal = data.total;
+  pintarLista();
+}
+function textoAnios(anios){
+  const n = {}; anios.forEach(a => { n[a] = (n[a] || 0) + 1; });
+  return Object.keys(n).sort().reverse().map(a => a + (n[a] > 1 ? ' ×' + n[a] : '')).join(', ');
+}
+function pintarBandaVersiones(){
+  const b = document.getElementById('bandaVersiones');
+  if(!otExacta){ b.hidden = true; b.innerHTML = ''; return; }
+  b.hidden = false;
+  b.innerHTML = `<span style="flex:1 1 220px"><b>Todas las versiones de la OT ${escH(otExacta)}</b> (de todos los años)</span><button type="button" onclick="volverALaLista()">Volver a la lista</button>`;
+}
+function verVersionesOt(ot){
+  otExacta = String(ot || '').trim();
+  document.getElementById('searchBox').value = '';
+  document.getElementById('clienteFiltro').value = '';
+  renderList();
+}
+function volverALaLista(){ otExacta = ''; renderList(); }
+function pintarLista(){
+  pintarBandaVersiones();
+  const el = document.getElementById('recList');
+  const total = clientesInfo ? clientesInfo.total : listaTotal;
+  document.getElementById('listaResumen').textContent = (hayFiltros() || listaTotal !== total) ? `${listaTotal} de ${total} OT` : `${listaTotal} OT`;
+  if(listaVisible.length === 0){
+    el.innerHTML = `<div class="empty-state">${icon('inbox')}<p>${hayFiltros() ? 'Sin resultados para tu búsqueda.' : 'No hay registros guardados todavía.<br>Completa el formulario y presiona "Guardar".'}</p></div>`;
+    return;
+  }
+  el.innerHTML = listaVisible.map(r => {
+    const statusClass = r.aplicaElectrica ? 'has-electrica' : (r.nFotos ? 'has-fotos' : '');
+    return `<div class="rec-card ${statusClass}" onclick="verRecord('${escH(r.id)}')">
+      <div class="rec-top"><span class="rec-ot">OT ${escH(r.ot) || '—'}</span><span class="rec-date">${fmtDate(r.fecha)}</span></div>
+      <div class="rec-cliente">${escH(r.cliente) || 'Sin cliente'}</div>
+      <div class="rec-meta">
+        ${r.comps.map(c => `<span class="chip">${escH(c)}</span>`).join('') || '<span class="chip">Sin componentes</span>'}
+        ${r.tecnico ? `<span class="chip">👤 ${escH(r.tecnico)}</span>` : ''}
+        ${r.nFotos ? `<span class="chip">📷 ${r.nFotos}</span>` : ''}
+        ${(r.otrosAnios.length && !otExacta) ? `<button type="button" class="chip vers" onclick="event.stopPropagation(); verVersionesOt('${escH(r.ot)}')" title="Ver esta OT en otros años">📅 Otras versiones: ${escH(textoAnios(r.otrosAnios))}</button>` : ''}
+      </div>
+      <div class="rec-actions">
+        <button class="btn-ver" onclick="event.stopPropagation(); verRecord('${escH(r.id)}')">Ver</button>
+        <button onclick="event.stopPropagation(); editRecord('${escH(r.id)}')">${icon('edit')}Editar</button>
+        <button onclick="event.stopPropagation(); printRecord('${escH(r.id)}')">${icon('printer')}Imprimir</button>
+        ${isAdmin ? `<button class="danger" onclick="event.stopPropagation(); deleteRecord('${escH(r.id)}')">${icon('trash')}</button>` : ''}
+      </div>
+    </div>`;
+  }).join('') + (listaVisible.length < listaTotal
+    ? `<div style="text-align:center;padding:14px 12px 24px;grid-column:1/-1;"><button class="ver-chip accion" id="btnMasLista" onclick="cargarMasLista()">Cargar más (${listaTotal - listaVisible.length} restantes)</button></div>`
+    : '');
+}
+let _tBuscar = null;
+document.getElementById('searchBox').addEventListener('input', () => { clearTimeout(_tBuscar); _tBuscar = setTimeout(() => renderList(), 350); });   // busca en el servidor (no trae todo)
+document.getElementById('clienteFiltro').addEventListener('change', () => renderList());
+
+/* ---------- Visor de OT: ver todo el contenido en grande, sin imprimir ---------- */
+let verIndice = -1, verFotos = [], lbIndice = 0;
+let verZoom = 1.35;   // el documento está pensado para papel (letra chica): en pantalla se abre ya ampliado
+try{ verZoom = parseFloat(localStorage.getItem('sehinco_ver_zoom')) || 1.35; }catch(e){}
+
+function verRecord(id){
+  const i = listaVisible.findIndex(r => r.id === id);
+  if(i < 0){ showToast('No se encontró el registro en la lista', 'error'); return; }
+  verIndice = i;
+  const abierto = !document.getElementById('verOverlay').hidden;
+  document.getElementById('verOverlay').hidden = false;
+  document.body.style.overflow = 'hidden';
+  if(!abierto){ try{ history.pushState({ ver: true }, ''); }catch(e){} }   // así el botón "atrás" del tablet cierra el visor
+  renderVer(true);
+}
+// Detalle completo de una OT (solo al abrirla). Se guardan las últimas en memoria para volver a verlas sin consultar.
+async function detalleDe(id){
+  if(_detalles.has(id)) return _detalles.get(id);
+  const { data, error } = await api('/ingresos/' + encodeURIComponent(id) + '?join=full');
+  if(error || !data){ console.error(error); return null; }
+  const rec = mapFromSupabase(data);
+  _detalles.set(id, rec);
+  if(_detalles.size > 20) _detalles.delete(_detalles.keys().next().value);
+  return rec;
+}
+let _solicitudVer = 0;
+async function renderVer(arriba){
+  const fila = listaVisible[verIndice];
+  if(!fila) return;
+  const mia = ++_solicitudVer;
+  // La cabecera sale al instante con lo que ya tiene la tarjeta; el detalle llega después
+  document.getElementById('verOT').textContent = 'OT ' + (fila.ot || '—');
+  document.getElementById('verCliente').textContent = (fila.cliente || 'Sin cliente') + ' · ' + fmtDate(fila.fecha);
+  document.getElementById('verPos').textContent = `${verIndice + 1} / ${listaTotal}`;
+  document.getElementById('verPrev').disabled = verIndice <= 0;
+  document.getElementById('verNext').disabled = verIndice >= listaTotal - 1;
+  document.getElementById('verChipElec').hidden = !fila.aplicaElectrica;
+  document.getElementById('verChipFotos').textContent = `Fotos (${fila.nFotos})`;
+  if(!_detalles.has(fila.id)) document.getElementById('verBody').innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-dim);">Cargando OT…</div>';
+  const rec = await detalleDe(fila.id);
+  if(mia !== _solicitudVer) return;                       // el usuario ya pasó a otra OT
+  if(!rec){
+    document.getElementById('verBody').innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-dim);">No se pudo cargar esta OT.<br><button class="ver-chip accion" style="margin-top:12px;" onclick="renderVer(true)">Reintentar</button></div>';
+    return;
+  }
+  const r = escRec(rec);
+  verFotos = (rec.fotos || []).slice().sort((a, b) => (a.orden || 0) - (b.orden || 0));
+  const fotosHtml = verFotos.length
+    ? `<div class="ver-fotos" id="vs-fotos"><h3>FOTOGRAFÍAS (${verFotos.length}) — toca una para verla en grande</h3><div class="ver-fotos-grid">${
+        verFotos.map((f, k) => `<figure onclick="abrirFotoVer(${k})"><img loading="lazy" src="${workerUrl(f.storage_path)}" alt=""><figcaption>${escH(f.etiqueta || '')}</figcaption></figure>`).join('')
+      }</div></div>`
+    : `<div class="ver-fotos" id="vs-fotos"><h3>FOTOGRAFÍAS</h3><p style="font-size:13px;color:#555;margin:0;">Sin fotos cargadas para esta OT.</p></div>`;
+  document.getElementById('verChipElec').hidden = !rec.aplicaElectrica;
+  document.getElementById('verChipFotos').textContent = `Fotos (${verFotos.length})`;
+  document.getElementById('verBody').innerHTML = `<div id="verDoc" style="zoom:${verZoom};">
+    <div id="vs-datos">${pageDatosIngreso(r)}</div>
+    <div id="vs-informe">${pageInforme(r)}</div>
+    ${rec.aplicaElectrica ? `<div id="vs-electrica">${pageElectrica(r)}</div>` : ''}
+    ${fotosHtml}
+  </div>`;
+  if(arriba) document.getElementById('verBody').scrollTop = 0;
+}
+async function verIr(delta){
+  const n = verIndice + delta;
+  if(n >= listaVisible.length && listaVisible.length < listaTotal) await cargarMasLista();   // al llegar a la última tarjeta cargada, trae las siguientes
+  if(n < 0 || n >= listaVisible.length) return;
+  verIndice = n; renderVer(true);
+}
+function cerrarVer(desdeAtras){
+  cerrarFotoVer();
+  document.getElementById('verOverlay').hidden = true;
+  document.body.style.overflow = '';
+  if(!desdeAtras && history.state && history.state.ver){ try{ history.back(); }catch(e){} }
+}
+window.addEventListener('popstate', () => { if(!document.getElementById('verOverlay').hidden) cerrarVer(true); });
+function verZoomCambiar(d){
+  verZoom = Math.min(2.2, Math.max(0.8, Math.round((verZoom + d) * 100) / 100));
+  const doc = document.getElementById('verDoc'); if(doc) doc.style.zoom = verZoom;
+  try{ localStorage.setItem('sehinco_ver_zoom', String(verZoom)); }catch(e){}
+}
+function abrirFotoVer(k){ lbIndice = k; lbEditable = false; mostrarFotoVer(); document.getElementById('lightbox').hidden = false; }
+function mostrarFotoVer(){
+  const f = verFotos[lbIndice]; if(!f) return;
+  lbReset();   // cada foto se abre ajustada a la pantalla
+  // Solo las fotos que están en un casillero tienen acciones (Reemplazar / Quitar del casillero); las adicionales no se tocan
+  const tieneCasillero = lbEditable && !!slotDeFoto(f);
+  document.getElementById('lbAcciones').hidden = !tieneCasillero;
+  document.getElementById('lbReemplazar').hidden = !tieneCasillero;
+  document.getElementById('lbEliminar').hidden = !tieneCasillero;
+  document.getElementById('lbImg').src = workerUrl(f.storage_path);
+  document.getElementById('lbCap').textContent = `${f.etiqueta || ''} (${lbIndice + 1} / ${verFotos.length})`.trim();
+}
+function cerrarFotoVer(){ document.getElementById('lightbox').hidden = true; document.getElementById('lbImg').removeAttribute('src'); }
+function fotoVerIr(d){ const n = lbIndice + d; if(n < 0 || n >= verFotos.length) return; lbIndice = n; mostrarFotoVer(); }
+
+document.getElementById('verCerrar').addEventListener('click', () => cerrarVer());
+document.getElementById('verPrev').addEventListener('click', () => verIr(-1));
+document.getElementById('verNext').addEventListener('click', () => verIr(1));
+document.getElementById('verZoomMas').addEventListener('click', () => verZoomCambiar(0.15));
+document.getElementById('verZoomMenos').addEventListener('click', () => verZoomCambiar(-0.15));
+document.getElementById('verEditar').addEventListener('click', () => { const id = (listaVisible[verIndice] || {}).id; if(!id) return; cerrarVer(); editRecord(id); });
+document.getElementById('verImprimir').addEventListener('click', () => { const id = (listaVisible[verIndice] || {}).id; if(id) printRecord(id); });
+document.querySelectorAll('.ver-chip[data-sec]').forEach(b => b.addEventListener('click', () => {
+  const s = document.getElementById('vs-' + b.dataset.sec);
+  if(s) s.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}));
+document.getElementById('lbCerrar').addEventListener('click', cerrarFotoVer);
+document.getElementById('lbPrev').addEventListener('click', () => fotoVerIr(-1));
+document.getElementById('lbNext').addEventListener('click', () => fotoVerIr(1));
+document.getElementById('lightbox').addEventListener('click', e => { if(e.target.id === 'lightbox' && Date.now() > lbZ.ignorarClickHasta) cerrarFotoVer(); });
+
+/* ---------- Zoom de la foto: pellizcar, doble toque, arrastrar, rueda y botones ---------- */
+const lbZ = { s: 1, x: 0, y: 0, ptrs: new Map(), d0: 0, s0: 1, x0: 0, y0: 0, ini: null, mov: false, ultimoToque: { t: 0, x: 0, y: 0 }, ignorarClickHasta: 0 };
+const LB_MAX = 6;
+function lbImg(){ return document.getElementById('lbImg'); }
+function lbAplicar(animar){
+  const img = lbImg();
+  img.classList.toggle('anim', !!animar);
+  img.style.transform = lbZ.s === 1 && lbZ.x === 0 && lbZ.y === 0 ? '' : `translate(${lbZ.x}px, ${lbZ.y}px) scale(${lbZ.s})`;
+  img.style.cursor = lbZ.s > 1 ? 'grab' : 'zoom-in';
+  document.getElementById('lbNivel').textContent = Math.round(lbZ.s * 100) + '%';
+}
+function lbReset(){ lbZ.s = 1; lbZ.x = 0; lbZ.y = 0; lbZ.ptrs.clear(); lbAplicar(false); }
+// No deja que la foto "se escape" de la pantalla al arrastrarla
+function lbLimitar(){
+  const img = lbImg();
+  const lx = Math.max(0, (img.clientWidth * lbZ.s - window.innerWidth) / 2);
+  const ly = Math.max(0, (img.clientHeight * lbZ.s - window.innerHeight) / 2);
+  lbZ.x = Math.min(lx, Math.max(-lx, lbZ.x)); lbZ.y = Math.min(ly, Math.max(-ly, lbZ.y));
+}
+// Cambia el zoom manteniendo fijo el punto (cx, cy) de la pantalla, como al pellizcar
+function lbZoomEn(nuevo, cx, cy, animar){
+  nuevo = Math.min(LB_MAX, Math.max(1, nuevo));
+  const r = lbImg().getBoundingClientRect();
+  const bx = r.left + r.width / 2 - lbZ.x, by = r.top + r.height / 2 - lbZ.y;   // centro de la foto sin zoom
+  const fx = cx - bx, fy = cy - by, k = nuevo / lbZ.s;
+  lbZ.x = fx - (fx - lbZ.x) * k; lbZ.y = fy - (fy - lbZ.y) * k; lbZ.s = nuevo;
+  if(lbZ.s === 1){ lbZ.x = 0; lbZ.y = 0; } else lbLimitar();
+  lbAplicar(animar);
+}
+const lbCentro = () => { const r = lbImg().getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+document.getElementById('lbMas').addEventListener('click', () => { const [cx, cy] = lbCentro(); lbZoomEn(lbZ.s * 1.5, cx, cy, true); });
+document.getElementById('lbMenos').addEventListener('click', () => { const [cx, cy] = lbCentro(); lbZoomEn(lbZ.s / 1.5, cx, cy, true); });
+document.getElementById('lbAjustar').addEventListener('click', () => { lbZ.s = 1; lbZ.x = 0; lbZ.y = 0; lbAplicar(true); });
+document.getElementById('lightbox').addEventListener('wheel', e => {
+  if(document.getElementById('lightbox').hidden) return;
+  e.preventDefault();
+  lbZoomEn(lbZ.s * Math.exp(-e.deltaY * 0.002), e.clientX, e.clientY, false);
+}, { passive: false });
+document.getElementById('lightbox').addEventListener('pointerdown', e => {
+  if(e.target.closest('button')) return;
+  const L = lbZ;
+  L.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if(L.ptrs.size === 1){ L.ini = { x: e.clientX, y: e.clientY, t: Date.now() }; L.x0 = L.x; L.y0 = L.y; L.mov = false; }
+  if(L.ptrs.size === 2){
+    const [a, b] = [...L.ptrs.values()];
+    L.d0 = Math.hypot(a.x - b.x, a.y - b.y) || 1; L.s0 = L.s; L.mov = true;
+  }
+});
+document.addEventListener('pointermove', e => {
+  const L = lbZ;
+  if(document.getElementById('lightbox').hidden || !L.ptrs.has(e.pointerId)) return;
+  L.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if(L.ptrs.size === 2){                                   // pellizco: acerca o aleja
+    const [a, b] = [...L.ptrs.values()];
+    lbZoomEn(L.s0 * Math.hypot(a.x - b.x, a.y - b.y) / L.d0, (a.x + b.x) / 2, (a.y + b.y) / 2, false);
+  }else if(L.ptrs.size === 1 && L.ini){
+    const dx = e.clientX - L.ini.x, dy = e.clientY - L.ini.y;
+    if(Math.abs(dx) > 8 || Math.abs(dy) > 8) L.mov = true;
+    if(L.s > 1){ L.x = L.x0 + dx; L.y = L.y0 + dy; lbLimitar(); lbAplicar(false); }   // con zoom: arrastrar mueve la foto
+  }
+});
+function lbSoltar(e){
+  const L = lbZ;
+  if(!L.ptrs.has(e.pointerId)) return;
+  const eraUno = L.ptrs.size === 1;
+  L.ptrs.delete(e.pointerId);
+  if(L.mov) L.ignorarClickHasta = Date.now() + 350;       // un arrastre no debe contar como "tocar el fondo para cerrar"
+  if(!eraUno || !L.ini) { if(L.ptrs.size === 1){ const p = [...L.ptrs.values()][0]; L.ini = { x: p.x, y: p.y, t: Date.now() }; L.x0 = L.x; L.y0 = L.y; } return; }
+  const dx = e.clientX - L.ini.x, dy = e.clientY - L.ini.y;
+  if(L.s === 1 && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5){ fotoVerIr(dx < 0 ? 1 : -1); L.ini = null; return; }   // deslizar: foto siguiente / anterior
+  if(!L.mov && e.type === 'pointerup' && e.target.closest && !e.target.closest('button')){
+    const ahora = Date.now(), u = L.ultimoToque;
+    if(ahora - u.t < 320 && Math.hypot(e.clientX - u.x, e.clientY - u.y) < 30){        // doble toque: acerca / ajusta
+      if(L.s > 1) { L.s = 1; L.x = 0; L.y = 0; lbAplicar(true); } else lbZoomEn(2.5, e.clientX, e.clientY, true);
+      L.ultimoToque = { t: 0, x: 0, y: 0 };
+    }else L.ultimoToque = { t: ahora, x: e.clientX, y: e.clientY };
+  }
+  L.ini = null;
+}
+document.addEventListener('pointerup', lbSoltar);
+document.addEventListener('pointercancel', lbSoltar);
+window.addEventListener('resize', () => { if(!document.getElementById('lightbox').hidden){ lbLimitar(); lbAplicar(false); } });
+['poDatos', 'poInforme', 'poElectrica', 'poFotos'].forEach(id => document.getElementById(id).addEventListener('change', actualizarBotonImprimir));
+document.getElementById('poCancelar').addEventListener('click', cerrarOpcionesImpresion);
+document.getElementById('poImprimir').addEventListener('click', confirmarImpresion);
+document.getElementById('printOpts').addEventListener('click', e => { if(e.target.id === 'printOpts') cerrarOpcionesImpresion(); });
+document.addEventListener('keydown', e => {
+  if(!document.getElementById('printOpts').hidden){ if(e.key === 'Escape') cerrarOpcionesImpresion(); return; }
+  if(!document.getElementById('lightbox').hidden){
+    if(e.key === 'Escape') cerrarFotoVer(); else if(e.key === 'ArrowLeft') fotoVerIr(-1); else if(e.key === 'ArrowRight') fotoVerIr(1);
+  }else if(!document.getElementById('verOverlay').hidden){
+    if(e.key === 'Escape') cerrarVer(); else if(e.key === 'ArrowLeft') verIr(-1); else if(e.key === 'ArrowRight') verIr(1);
+  }
+});
+
+async function editRecord(id){
+  const { data, error } = await api('/ingresos/' + id + '?join=full');
+  if(error){ console.error(error); showToast('No se pudo cargar el registro', 'error'); return; }
+  const rec = mapFromSupabase(data);
+  window.editingId = rec.id; ocultarAvisoOt();
+  document.getElementById('f_ot').value = rec.ot||'';
+  document.getElementById('f_cot').value = rec.cot||'';
+  document.getElementById('f_codigo').value = rec.codigoEquipo||'';
+  document.getElementById('f_fecha').value = rec.fecha||'';
+  document.getElementById('f_cliente').value = rec.cliente||'';
+  document.getElementById('f_guia').value = rec.guia||'';
+  document.getElementById('f_tecnico').value = rec.tecnico||'';
+  document.getElementById('f_diagnostico').value = rec.diagnostico||'';
+  document.getElementById('f_obsGeneral').value = rec.obsGeneral||'';
+  state.checkIn = rec.checkIn || [];
+  state.checkOut = rec.checkOut || [];
+  let comps = rec.componentes.length ? rec.componentes : [COMPONENT_FIELDS_TEMPLATE(), COMPONENT_FIELDS_TEMPLATE()];
+  const motorComp = comps.find(c => c.nombre === 'MOTOR');
+  const bombaComp = comps.find(c => c.nombre === 'BOMBA');
+  if(motorComp && bombaComp) comps = [motorComp, bombaComp]; // Motor siempre primero, sin importar el orden que entregue la base
+  state.componentes = comps;
+  // El nombre del componente ahora es fijo (MOTOR / BOMBA), aunque un registro viejo tenga otro nombre guardado
+  if(state.componentes[0]) state.componentes[0].nombre = 'MOTOR';
+  if(state.componentes[1]) state.componentes[1].nombre = 'BOMBA';
+  state.activeComp = 0;
+  state.repuestos = rec.repuestos || [];
+  document.getElementById('f_descripcionTrabajo').value = rec.descripcionTrabajo||'';
+  document.getElementById('f_conclusion').value = rec.conclusion||'';
+  document.getElementById('f_sugerencia').value = rec.sugerencia||'';
+  document.getElementById('f_medidaCorrectiva').value = rec.medidaCorrectiva||'';
+  const el = rec.electrica || {};
+  document.getElementById('f_aplicaElectrica').checked = !!rec.aplicaElectrica;
+  toggleElectrica(!!rec.aplicaElectrica);
+  document.querySelectorAll('input[name=e_conexion]').forEach(r => r.checked = (r.value === (el.conexion || 'ESTRELLA')));
+  document.getElementById('e_continuidad').value = el.continuidad || '';
+  document.getElementById('e_obsAislacion').value = el.obsAislacion || '';
+  document.getElementById('e_u1u2').value = el.u1u2 || '';
+  document.getElementById('e_v1v2').value = el.v1v2 || '';
+  document.getElementById('e_w1w2').value = el.w1w2 || '';
+  document.getElementById('e_obsResistencia').value = el.obsResistencia || '';
+  document.getElementById('e_r').value = el.r || '';
+  document.getElementById('e_s').value = el.s || '';
+  document.getElementById('e_t').value = el.t || '';
+  document.getElementById('e_obsCorriente').value = el.obsCorriente || '';
+  document.getElementById('e_obsBobinado').value = el.obsBobinado || '';
+  document.getElementById('e_obsPlaca').value = el.obsPlaca || '';
+  document.querySelectorAll('input[name=e_concBobinado]').forEach(r=>r.checked = (r.value === el.concBobinado));
+  document.querySelectorAll('input[name=e_concPlaca]').forEach(r=>r.checked = (r.value === el.concPlaca));
+  state.aislacion = (el.aislacion && el.aislacion.length) ? el.aislacion : state.aislacion;
+  limpiarErroresValidacion();
+  renderChecklist('checkIn','checkIn');
+  renderChecklist('checkOut','checkOut');
+  renderCompSwitch();
+  renderCompPanes();
+  renderRepuestos();
+  renderAislacionTable();
+  renderFotosList(rec.fotos || []);
+  switchView('form');
+  document.getElementById('sec-datos').scrollIntoView({block:'start'});
+}
+
+async function deleteRecord(id){
+  if(!isAdmin || !esAdminSesion()){ isAdmin = false; updateAdminButton(); showToast('Solo un administrador puede eliminar registros. Vuelve a entrar como administrador.', 'error'); renderList(); return; }
+  if(!confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')) return;
+  try{
+    // El Worker borra el informe, sus componentes, repuestos y también las fotos guardadas en R2.
+    const { error } = await api('/ingresos/' + id, { method:'DELETE' });
+    if(error) throw error;
+    showToast('Registro eliminado');
+    await cargarClientes(true);      // actualiza el contador y el menú de clientes
+    renderList();
+  }catch(e){ console.error(e); showToast('Error al eliminar: ' + (e.message||''), 'error'); }
+}
+
+/* ============================================================
+   GENERACIÓN DE PDF — replica el formato oficial de los 3 documentos
+   ============================================================ */
+function docHeader(rec, subtitle){
+  return `<div class="doc-header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <img src="logo-sehinco.png" style="width:46px;height:46px;object-fit:contain;">
+      <div class="co"><b>SOCIEDAD INDUSTRIAL Y COMERCIAL</b><br>SEHINCO LTDA.<br>FABRICACIÓN Y REPARACIÓN DE SELLOS MECANICOS<br>WWW.SEHINCO.CL</div>
+    </div>
+    <div class="ot">O.T. N°: ${rec.ot || '—'}</div>
+  </div>
+  <div class="doc-title">${subtitle}</div>`;
+}
+function docFooter(){
+  return `<p class="doc-pie" style="font-size:9.5px;color:#555;border-top:1px solid #000;padding-top:4px;margin-top:16px;">TORO MAZOTTE 0130 - FONO/FAX:227760857 - EMAIL: ventas@sehinco.cl - ESTACION CENTRAL - SANTIAGO - CHILE</p>`;
+}
+function row(label, val){ return `<tr><td class="lbl">${label}</td><td>${val || ''}</td></tr>`; }
+
+function pageDatosIngreso(rec){
+  const comps = rec.componentes || [];
+  const c0 = comps.find(c => c.nombre === 'MOTOR') || comps[0] || {};
+  const c1 = comps.find(c => c.nombre === 'BOMBA') || comps[1] || {};
+  const compRow = (label, key) => `<tr><td class="lbl">${label}</td><td>${c0[key]||''}</td><td>${c1[key]||''}</td></tr>`;
+  const selloCuerpoTexto = (c) => [c.selloCuerpoEmpaquetadura ? `Empaq: ${c.selloCuerpoEmpaquetadura}` : '', c.selloCuerpoOring ? `O'Ring: ${c.selloCuerpoOring}` : ''].filter(Boolean).join(' / ');
+  return `<div class="doc-page">
+    ${docHeader(rec,'DATOS DE INGRESO EQUIPO A MANTENCION')}
+    <table class="doc-table">
+      ${row('CLIENTE', rec.cliente)}
+      ${row('EQUIPO', rec.diagnostico)}
+      ${row('FECHA', fmtDate(rec.fecha))}
+      ${row('GUIA DE DESPACHO CLIENTE', rec.guia)}
+      ${row('COTIZACION N°', rec.cot)}
+    </table>
+    <table class="doc-table">
+      <tr><th>DESCRIPCION</th><th>${c0.nombre||'MOTOR'}</th><th>${c1.nombre||'BOMBA'}</th></tr>
+      ${compRow('EQUIPO','equipo')}
+      ${compRow('USO','uso')}
+      ${compRow('CODIGO / N° EQUIPO','codigoEquipo')}
+      ${compRow('MARCA','marca')}
+      ${compRow('MODELO','modelo')}
+      ${compRow('SERIE','serie')}
+      ${compRow('POTENCIA','potencia')}
+      ${compRow('CORRIENTE','corriente')}
+      ${compRow('VOLTAJE','voltaje')}
+      ${compRow('FRECUENCIA','frecuencia')}
+      ${compRow('RPM','rpm')}
+      ${compRow('TIPO ACOPLAMIENTO','acoplamiento')}
+      ${compRow('RODAMIENTO','rodamiento')}
+      ${compRow('ROD. REDUCTOR','rodamientoReductor')}
+      ${compRow('RETENES','retenes')}
+      ${compRow('RETENES REDUCTOR','retenesReductor')}
+      <tr><td class="lbl">SELLO MEC.</td><td colspan="2">${c0.selloMecanico || c1.selloMecanico || ''}</td></tr>
+      ${compRow('IMPULSOR','impulsor')}
+      ${compRow('DIAMETRO IMPULSOR','diamImpulsor')}
+      <tr><td class="lbl">SELLO CUERPO BBA.</td><td>${selloCuerpoTexto(c0)}</td><td>${selloCuerpoTexto(c1)}</td></tr>
+      ${compRow('MEDIDA TUERCA IMPULSOR','medidaTuerca')}
+    </table>
+    ${docFooter()}
+  </div>`;
+}
+
+function pageInforme(rec){
+  const comps = rec.componentes || [];
+  const c0 = comps.find(c => c.nombre === 'MOTOR') || comps[0] || {};
+  const c1 = comps.find(c => c.nombre === 'BOMBA') || comps[1] || {};
+  const compRow = (label, key) => `<tr><td class="lbl">${label}</td><td>${c0[key]||''}</td><td>${c1[key]||''}</td></tr>`;
+  const repRows = (rec.repuestos||[]).map(r=>`<tr><td>${r.componente}</td><td>${r.descripcion}</td><td style="text-align:center;">${r.cantidad}</td></tr>`).join('');
+  const compTable = `
+    <table class="doc-table">
+      <tr><th>DATOS TECNICOS</th><th>${c0.nombre||'MOTOR'}</th><th>${c1.nombre||'BOMBA'}</th></tr>
+      ${compRow('Código equipo','codigoEquipo')}
+      ${compRow('Marca','marca')}
+      ${compRow('Modelo','modelo')}
+      ${compRow('N° Serie','serie')}
+      ${compRow('Potencia','potencia')}
+      ${compRow('Corriente','corriente')}
+      ${compRow('Voltaje','voltaje')}
+      ${compRow('Frecuencia','frecuencia')}
+      ${compRow('Velocidad / RPM','rpm')}
+    </table>`;
+  return `<div class="doc-page">
+    ${docHeader(rec,'INFORME DE MANTENIMIENTO DE EQUIPO')}
+    <div class="doc-section-title">DATOS TECNICOS EQUIPO</div>
+    <table class="doc-table">
+      ${row('Empresa', rec.cliente)}${row('Fecha reparación', fmtDate(rec.fecha))}${row('Uso / diagnóstico', rec.diagnostico)}${row('Sello mecánico', c0.selloMecanico || c1.selloMecanico)}
+    </table>
+    ${compTable}
+    <div class="doc-section-title">REPUESTOS</div>
+    <table class="doc-table"><tr><th>Componente</th><th>Descripción</th><th>Cantidad</th></tr>${repRows || '<tr><td colspan="3" style="text-align:center;color:#777;">Sin repuestos registrados</td></tr>'}</table>
+    <div class="doc-section-title">DESCRIPCION DEL TRABAJO</div>
+    <table class="doc-table"><tr><td>${(rec.descripcionTrabajo||'').replace(/\n/g,'<br>')}</td></tr></table>
+    <div class="doc-section-title">CONCLUSION Y SUGERENCIAS</div>
+    <table class="doc-table">
+      ${row('Conclusión', rec.conclusion)}
+      ${row('Sugerencia', rec.sugerencia)}
+      ${row('Medida adicional correctiva', rec.medidaCorrectiva)}
+    </table>
+    <p style="font-size:11px;margin-top:16px;">PREPARADO POR<br><b>SEHINCO IND. LTDA</b> — ${rec.tecnico||''} &nbsp; FECHA ${fmtDate(rec.fecha)}</p>
+    ${docFooter()}
+  </div>`;
+}
+
+function pageElectrica(rec){
+  const e = rec.electrica || {};
+  const aisRows = (e.aislacion||[]).map(a => `<tr><td class="lbl" style="width:auto;">${a.label}</td><td>${a.kOhm1}</td><td>${a.mOhm1}</td><td>${a.gOhm1}</td><td>${a.voltaje1}</td></tr>`).join('');
+  const concRow = (label, val) => `<tr><td class="lbl">${label}</td><td style="text-align:center;">${val==='Bueno'?'X':''}</td><td style="text-align:center;">${val==='Regular'?'X':''}</td><td style="text-align:center;">${val==='Malo'?'X':''}</td></tr>`;
+  const conexionTexto = e.conexion === 'DELTA' ? '▲ DELTA' : e.conexion === 'MONOFASICO' ? 'MONOFASICO' : '★ ESTRELLA';
+  return `<div class="doc-page">
+    ${docHeader(rec,'GUIA DE MANTENCION ELECTRICA DE EQUIPO')}
+    <div class="doc-section-title">ESTADO ELECTRICO DEL BOBINADO MOTOR</div>
+    <table class="doc-table">
+      ${row('FECHA', fmtDate(rec.fecha))}${row('CLIENTE', rec.cliente)}${row('DIAGNOSTICO', rec.diagnostico)}
+      ${row('CODIGO / N° EQUIPO', (rec.componentes||[])[0]?.codigoEquipo)}${row('MAESTRO ASIGNADO', rec.tecnico)}${row('CONEXION', conexionTexto)}
+    </table>
+    <div class="doc-section-title">TABLA DE DATOS AISLACION</div>
+    <table class="doc-table"><tr><th></th><th>KΩ</th><th>MΩ</th><th>GΩ</th><th>V.prueba 1</th></tr>${aisRows}</table>
+    <p style="font-size:10.5px;">NOTA: MEDIR SIN PLACA DE BORNES (TERMINALES) — Observación: ${e.obsAislacion||'—'} — Prueba de continuidad: ${e.continuidad||'—'}</p>
+    <div class="doc-section-title">MEDICION DE RESISTENCIA / CORRIENTES (EN VACIO)</div>
+    <table class="doc-table">
+      <tr><th>U1-U2</th><th>V1-V2</th><th>W1-W2</th><th>R</th><th>S</th><th>T</th></tr>
+      <tr><td style="text-align:center;">${e.u1u2||''}</td><td style="text-align:center;">${e.v1v2||''}</td><td style="text-align:center;">${e.w1w2||''}</td><td style="text-align:center;">${e.r||''}</td><td style="text-align:center;">${e.s||''}</td><td style="text-align:center;">${e.t||''}</td></tr>
+    </table>
+    <div class="doc-section-title">CONCLUSION ESTADO DE BOBINADO</div>
+    <table class="doc-table"><tr><th></th><th>BUENO</th><th>REGULAR</th><th>MALO (EN CCTO.)</th></tr>${concRow('Estado de bobinado', e.concBobinado)}</table>
+    <p style="font-size:10.5px;">Observación: ${e.obsBobinado||'—'}</p>
+    <div class="doc-section-title">CONCLUSION PLACA DE BORNE</div>
+    <table class="doc-table"><tr><th></th><th>BUENO</th><th>REGULAR</th><th>MALO</th></tr>${concRow('Placa de borne', e.concPlaca)}</table>
+    <p style="font-size:10.5px;">Observación: ${e.obsPlaca||'—'}</p>
+    ${docFooter()}
+  </div>`;
+}
+
+// Al tocar "PDF" se carga la OT y se pregunta QUÉ imprimir. Las fotos vienen SIN marcar (por defecto no se imprimen).
+let _recImprimir = null;
+async function printRecord(id){
+  const { data, error } = await api('/ingresos/' + id + '?join=full');
+  if(error){ console.error(error); showToast('Error al cargar el registro', 'error'); return; }
+  _recImprimir = escRec(mapFromSupabase(data));   // escapado: un texto con < > & no puede romper la hoja
+  abrirOpcionesImpresion(_recImprimir);
+}
+// Cambia cada vez que se publica una versión nueva: sirve para comprobar que el tablet/navegador ya la está usando
+const APP_VERSION = '2026-11-17 · fotos adicionales con ícono';
+function abrirOpcionesImpresion(rec){
+  document.getElementById('poVersion').textContent = 'Versión de la app: ' + APP_VERSION;
+  const nFotos = (rec.fotos || []).length;
+  document.getElementById('poTitulo').textContent = `Imprimir OT ${rec.ot || ''}`;
+  document.getElementById('poSub').textContent = rec.cliente || '';
+  document.getElementById('poDatos').checked = true;
+  document.getElementById('poInforme').checked = true;
+  document.getElementById('poElectrica').checked = true;
+  document.getElementById('poFilaElectrica').hidden = !rec.aplicaElectrica;
+  document.getElementById('poFotos').checked = false;                    // por defecto, sin fotos
+  document.getElementById('poFilaFotos').hidden = nFotos === 0;
+  document.getElementById('poFotosTxt').textContent = `Fotos (${nFotos})`;
+  actualizarBotonImprimir();
+  document.getElementById('printOpts').hidden = false;
+}
+function opcionesImpresionLeidas(){
+  return {
+    datos: document.getElementById('poDatos').checked,
+    informe: document.getElementById('poInforme').checked,
+    electrica: document.getElementById('poElectrica').checked && !document.getElementById('poFilaElectrica').hidden,
+    fotos: document.getElementById('poFotos').checked && !document.getElementById('poFilaFotos').hidden
+  };
+}
+function actualizarBotonImprimir(){
+  const o = opcionesImpresionLeidas();
+  document.getElementById('poImprimir').disabled = !(o.datos || o.informe || o.electrica || o.fotos);
+}
+function cerrarOpcionesImpresion(){ document.getElementById('printOpts').hidden = true; }
+async function confirmarImpresion(){
+  const op = opcionesImpresionLeidas();
+  cerrarOpcionesImpresion();
+  if(_recImprimir) await imprimirOT(_recImprimir, op);
+}
+async function imprimirOT(rec, op){
+  op = op || { datos: true, informe: true, electrica: true, fotos: false };
+  let html = '';
+  if(op.datos) html += pageDatosIngreso(rec);
+  if(op.informe) html += pageInforme(rec);
+  if(op.electrica && rec.aplicaElectrica) html += pageElectrica(rec);
+  if(op.fotos){
+    const fotos = (rec.fotos || []).slice().sort((a,b) => (a.orden||0)-(b.orden||0));
+    const fotosHtml = fotos.length ? fotos.map(f => {
+      const url = workerUrl(f.storage_path);
+      return `<div class="doc-photo"><img src="${url}" style="max-width:100%;max-height:300px;border:1px solid #999;"><br>${f.etiqueta||''}</div>`;
+    }).join('') : `<p style="font-size:11.5px;color:#555;">Sin fotos cargadas para esta OT.</p>`;
+    html += `<div class="doc-page flujo">
+      ${docHeader(rec,'ANEXO 1 — FOTOGRAFIAS')}
+      ${fotosHtml}
+      ${docFooter()}
+    </div>`;
+  }
+  if(!html){ showToast('No hay nada seleccionado para imprimir', 'error'); return; }
+  const area = document.getElementById('printArea');
+  area.innerHTML = html;
+  // Espera a que terminen de cargar las fotos (hasta 20 s); si se imprime antes, salen en blanco.
+  const pendientes = [...area.querySelectorAll('img')].filter(i => !i.complete);
+  if(pendientes.length){
+    showToast('Cargando fotos para imprimir…');
+    await Promise.race([
+      Promise.all(pendientes.map(i => new Promise(r => { i.addEventListener('load', r); i.addEventListener('error', r); }))),
+      new Promise(r => setTimeout(r, 20000))
+    ]);
+  }
+  await ajustarHojasAlPapel(area);
+  window.print();
+}
+
+/* Cada hoja del documento (ingreso, informe, eléctrica) debe caber en UNA página: si se pasa aunque sea un poco,
+   el pie (dirección, fono, correo) se va solo a una hoja nueva. Se mide como saldría en papel y, si hace falta,
+   se achica la hoja lo justo (nunca bajo ZOOM_MIN_HOJA para que se siga leyendo bien). Si aun así no cabe, se deja
+   fluir en 2 hojas, pero con el pie pegado al contenido. */
+// Hoja CARTA con márgenes de 8 mm: 995 px útiles. Se deja ~12 % de holgura porque cada dispositivo dibuja el texto con
+// tipografías distintas: en un Galaxy Tab el mismo texto sale más alto que en un PC y con 975 el pie caía a una hoja nueva.
+// Probado con Chrome real (PDF) y texto hasta 17 % más alto que lo normal: siempre 3 hojas.
+const ALTO_HOJA_PX = 870;
+const ZOOM_MIN_HOJA = 0.78;
+async function ajustarHojasAlPapel(area){
+  area.classList.add('midiendo');
+  try{
+    for(const pg of area.querySelectorAll('.doc-page:not(.flujo)')){
+      pg.style.zoom = '';
+      let h = pg.getBoundingClientRect().height;
+      if(h <= ALTO_HOJA_PX) continue;
+      let z = 1;
+      for(let i = 0; i < 4 && h > ALTO_HOJA_PX; i++){
+        z = Math.max(ZOOM_MIN_HOJA, z * ALTO_HOJA_PX / h * 0.99);
+        pg.style.zoom = z.toFixed(3);
+        h = pg.getBoundingClientRect().height;
+        if(z === ZOOM_MIN_HOJA) break;
+      }
+      if(h > ALTO_HOJA_PX){ pg.style.zoom = ''; pg.classList.add('flujo'); }   // demasiado larga: mejor 2 hojas legibles que 1 ilegible
+    }
+  }finally{ area.classList.remove('midiendo'); }
+}
+
+/* ============================================================
+   EXPORTAR CSV
+   ============================================================ */
+function csvEscape(v){ return '"' + String(v ?? '').replace(/"/g,'""') + '"'; }
+async function exportCSV(){
+  const recs = await listAllRecords();
+  if(recs.length === 0){ showToast('No hay registros para exportar', 'error'); return; }
+  const cols = ['ot','cot','codigoEquipo','fecha','cliente','guia','tecnico','diagnostico','obsGeneral'];
+  const compCols = ['nombre','equipo','uso','codigoEquipo','marca','modelo','serie','potencia','corriente','voltaje','frecuencia','rpm','rodamiento','rodamientoReductor','retenes','retenesReductor','selloMecanico','impulsor','diamImpulsor','selloCuerpoEmpaquetadura','selloCuerpoOring','medidaTuerca','observacion'];
+  const maxComp = Math.max(1, ...recs.map(r=>r.componentes.length));
+  const header = [...cols, ...Array.from({length:maxComp}).flatMap((_,i)=>compCols.map(c=>`comp${i+1}_${c}`))];
+  const rows = recs.map(r => {
+    const base = cols.map(c => csvEscape(r[c]));
+    const comps = Array.from({length:maxComp}).flatMap((_,i) => {
+      const c = r.componentes[i] || {};
+      return compCols.map(k => csvEscape(c[k]));
+    });
+    return [...base, ...comps].join(',');
+  });
+  const csv = [header.map(csvEscape).join(','), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'ingresos_sehinco_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+document.getElementById('btnExport').addEventListener('click', exportCSV);
+
+/* ============================================================
+   GUARDAR EN LAS CARPETAS DEL PC (solo administrador, Chrome/Edge de escritorio)
+   Para cada OT creada en la tablet que aún no está en la carpeta del año, crea  CLIENTE / OT número  con
+   - "Informe OT número (tablet).pdf": datos de ingreso + informe (+ guía eléctrica) con el mismo formato de imprimir
+   - todas sus fotos, con su descripción en el nombre ("1. MOTOR ANTES.jpg")
+   El PDF se arma fotografiando las hojas (html2canvas + jsPDF, que se bajan de internet solo al usarlo).
+   ============================================================ */
+const PC = { raiz: null, nuevas: [], clientes: new Map(), ocupado: false };
+const PC_RE_OT = /^(?:OT[_\s-]?(\d{4,7})|(\d{5,7}))(?!\d)/i;
+const PC_ALTO_HOJA = 995, PC_ANCHO_HOJA = 755;      // área útil de una hoja CARTA con márgenes de 8 mm, en px
+function pcClave(s){
+  let t = (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/&/g, ' Y ').replace(/\./g, '').replace(/[,;:()'"\-\/]/g, ' ').replace(/\s+/g, ' ').trim();
+  for(let i = 0; i < 2; i++) t = t.replace(/\s(S ?A|S ?P ?A|SPA|LTDA|LIMITADA|E ?I ?R ?L|CIA|Y CIA)$/, '').trim();
+  return t.replace(/[^A-Z0-9]/g, '');
+}
+function pcNombreSeguro(s){ return String(s || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().replace(/[. ]+$/, ''); }
+function pcEstado(txt, tipo){ const e = document.getElementById('pcEstado'); e.textContent = txt || ''; e.style.color = tipo === 'err' ? 'var(--danger, #c0392b)' : ''; }
+// Recordar la carpeta elegida (IndexedDB de esta página)
+function pcIdb(){ return new Promise((res, rej) => { const r = indexedDB.open('sehinco_app_pc', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function pcKvGet(k){ try{ const db = await pcIdb(); return await new Promise(res => { const t = db.transaction('kv').objectStore('kv').get(k); t.onsuccess = () => res(t.result); t.onerror = () => res(null); }); }catch(e){ return null; } }
+async function pcKvSet(k, v){ try{ const db = await pcIdb(); await new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite').objectStore('kv').put(v, k); t.onsuccess = res; t.onerror = () => rej(t.error); }); }catch(e){ console.warn('no se pudo recordar la carpeta', e); } }
+async function pcAbrir(){
+  document.getElementById('pcOv').hidden = false;
+  if(!PC.raiz){ const h = await pcKvGet('carpetaPc'); if(h) PC.raiz = h; }
+  pcPintarCarpeta();
+}
+function pcPintarCarpeta(){
+  document.getElementById('pcCarpeta').textContent = PC.raiz ? `Carpeta: «${PC.raiz.name}»` : 'Aún no elegiste la carpeta del año (por ejemplo «INFORMES TECNICOS Y FOTOS 2026»).';
+  document.getElementById('pcBuscar').disabled = !PC.raiz || PC.ocupado;
+}
+async function pcElegir(){
+  try{
+    const h = await window.showDirectoryPicker({ id: 'sehinco-pc', mode: 'readwrite' });
+    PC.raiz = h; await pcKvSet('carpetaPc', h); PC.nuevas = []; document.getElementById('pcLista').innerHTML = '';
+    document.getElementById('pcGuardar').hidden = true; pcEstado(''); pcPintarCarpeta();
+  }catch(e){ if(e.name !== 'AbortError') pcEstado('No se pudo abrir la carpeta: ' + e.message, 'err'); }
+}
+async function pcPermiso(){
+  if(!PC.raiz) return false;
+  if(PC.raiz.requestPermission){ const p = await PC.raiz.requestPermission({ mode: 'readwrite' }); if(p !== 'granted'){ pcEstado('Sin permiso para escribir en la carpeta. Vuelve a pulsar el botón y acepta.', 'err'); return false; } }
+  return true;
+}
+// Qué hay en la carpeta del año: números de OT ya guardados y carpetas de cliente
+async function pcEscanear(raiz){
+  const numeros = new Map(), clientes = new Map(), carpetas = new Map();   // numeros: nº de OT -> cuántas carpetas de esa OT hay (pueden repetirse en el año)
+  const suma = (n, nombre, handle, cliente) => { numeros.set(n, (numeros.get(n) || 0) + 1); if(!carpetas.has(n)) carpetas.set(n, []); carpetas.get(n).push({ nombre, handle, cliente }); };
+  for await (const [n1, h1] of raiz.entries()){
+    if(h1.kind !== 'directory') continue;
+    const m1 = n1.match(PC_RE_OT);
+    if(m1){ suma(m1[1] || m1[2], n1, h1, ''); continue; }
+    clientes.set(n1, { nombre: n1, handle: h1, clave: pcClave(n1) });
+    for await (const [n2, h2] of h1.entries()){
+      if(h2.kind !== 'directory') continue;
+      const m2 = n2.match(PC_RE_OT); if(m2) suma(m2[1] || m2[2], n2, h2, n1);
+    }
+  }
+  return { numeros, clientes, carpetas };
+}
+// ¿La OT de la app tiene realmente un informe cargado? Las OT importadas solo con fotos traen únicamente cliente, fecha y equipo:
+// a esas no se les crea un informe vacío. Cuenta como informe: trabajo realizado, conclusión, sugerencia, medida correctiva,
+// observaciones, repuestos o datos técnicos de algún componente.
+// Devuelve el motivo (texto) si la OT tiene informe cargado, o '' si no.
+async function pcOtTieneInforme(id){
+  const { data, error } = await api('/ingresos/' + id + '?join=full');
+  if(error || !data) return '';
+  const t = (s) => String(s == null ? '' : s).trim();
+  // "REALIZAR MANTENIMIENTO PREVENTIVO ANUAL" lo ponen solos el formulario y el importador en TODA OT: no es un dato escrito por nadie
+  const sugerencia = t(data.sugerencia).toUpperCase() === 'REALIZAR MANTENIMIENTO PREVENTIVO ANUAL' ? '' : data.sugerencia;
+  const campos = { 'trabajo realizado': data.descripcion_trabajo, 'conclusión': data.conclusion, 'sugerencia': sugerencia, 'medida correctiva': data.medida_correctiva, 'observaciones': data.obs_general };
+  const llenos = Object.keys(campos).filter(k => t(campos[k]));
+  if(llenos.length) return llenos.join(', ');
+  if((data.repuestos || []).length) return `${data.repuestos.length} repuesto(s)`;
+  const claves = ['marca', 'modelo', 'serie', 'potencia', 'corriente', 'voltaje', 'rpm', 'rodamiento', 'sello_mecanico', 'impulsor', 'observacion'];
+  for(const c of (data.componentes || [])){ const k = claves.find(x => t(c[x])); if(k) return `${c.nombre || 'componente'}: ${k} = «${t(c[k]).slice(0, 25)}»`; }
+  return '';
+}
+// ¿La carpeta de la OT ya tiene algún informe PDF? (los de la propia app, "(tablet)", también cuentan)
+async function pcTienePdf(dir){
+  for await (const [n, h] of dir.entries()){ if(h.kind === 'file' && /\.pdf$/i.test(n) && !n.startsWith('~$')) return true; }
+  return false;
+}
+// Carpeta de cliente que corresponde a un nombre: igual (sin tildes/puntos/S.A.) o, si hay una sola, que lo contenga
+function pcCarpetaDeCliente(nombreCliente){
+  const k = pcClave(nombreCliente); if(!k) return null;
+  const todas = [...PC.clientes.values()];
+  const exactas = todas.filter(c => c.clave === k);
+  if(exactas.length) return exactas[0];
+  const parecidas = todas.filter(c => c.clave.length >= 3 && k.length >= 3 && (c.clave.includes(k) || k.includes(c.clave)));
+  return parecidas.length === 1 ? parecidas[0] : null;
+}
+async function pcBuscar(){
+  if(PC.ocupado) return;
+  if(!await pcPermiso()) return;
+  PC.ocupado = true; pcPintarCarpeta(); pcEstado('Revisando la carpeta y la lista de OT…');
+  try{
+    const { numeros, clientes, carpetas } = await pcEscanear(PC.raiz);
+    PC.clientes = clientes;
+    const { data, error } = await api('/resumen');
+    if(error) throw new Error(error.message || 'no se pudo consultar la lista de OT');
+    const anio = (PC.raiz.name.match(/(20\d\d)/) || [])[1];
+    // Registros de la app por número de OT (solo del año de la carpeta y con fecha), del más antiguo al más nuevo.
+    // Si el mismo número aparece más de una vez en el año (p. ej. se reutilizó en el segundo semestre), cada carpeta
+    // ya guardada cubre a los registros más antiguos y solo se ofrecen los que sobran: nunca se pisa una carpeta existente.
+    const porOt = new Map();
+    (data || []).forEach(r => { if(!r.fecha || (anio && r.fecha.slice(0, 4) !== anio)) return; const k = String(r.ot); if(!porOt.has(k)) porOt.set(k, []); porOt.get(k).push(r); });
+    PC.nuevas = []; const candidatasSinPdf = [];
+    porOt.forEach((rows, ot) => {
+      rows.sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || String(a.id).localeCompare(String(b.id)));
+      const yaGuardadas = numeros.get(ot) || 0;
+      rows.slice(yaGuardadas).forEach(r => PC.nuevas.push({ ...r, repetida: yaGuardadas > 0 }));
+      if(yaGuardadas === 1) candidatasSinPdf.push({ fila: rows[0], carpeta: carpetas.get(ot)[0] });
+    });
+    // OT cuya carpeta ya existe (p. ej. solo con fotos) pero sin ningún informe PDF: se ofrece agregar solo el PDF
+    pcEstado(`Revisando ${candidatasSinPdf.length} carpetas de OT que ya existen…`);
+    let sig = 0;
+    await Promise.all(Array.from({ length: 6 }, async () => {
+      while(sig < candidatasSinPdf.length){
+        const c = candidatasSinPdf[sig++];
+        try{ if(!await pcTienePdf(c.carpeta.handle) && (c.motivo = await pcOtTieneInforme(c.fila.id))) PC.nuevas.push({ ...c.fila, completar: true, motivoInforme: c.motivo, carpetaHandle: c.carpeta.handle, carpetaNombre: c.carpeta.nombre, carpetaCliente: c.carpeta.cliente }); }catch(e){ console.warn('no se pudo revisar', c.carpeta.nombre, e); }
+      }
+    }));
+    PC.nuevas.sort((a, b) => String(b.ot).localeCompare(String(a.ot), 'es', { numeric: true }));
+    document.getElementById('pcLista').innerHTML = PC.nuevas.map((r, i) => {
+      const cli = (r.cliente || '').trim() || 'SIN CLIENTE', c = pcCarpetaDeCliente(cli);
+      if(r.completar) return `<label class="pc-fila"><input type="checkbox" class="pcChk" data-i="${i}" checked><span><b>OT ${escH(r.ot)}</b> · ${escH(cli)} · ${escH(r.fecha || '')}<small>Ya tiene carpeta («${escH((r.carpetaCliente ? r.carpetaCliente + ' / ' : '') + r.carpetaNombre)}») pero sin informe PDF: se agrega solo el informe «(T)»; no se toca nada más. Datos de informe en la app: ${escH(r.motivoInforme || '')}</small></span></label>`;
+      return `<label class="pc-fila"><input type="checkbox" class="pcChk" data-i="${i}" checked><span><b>OT ${escH(r.ot)}</b> · ${escH(cli)} · ${escH(r.fecha || '')}<small>Va a: ${c ? escH(c.nombre) : escH(pcNombreSeguro(cli.toUpperCase())) + ' (carpeta nueva)'} / OT ${escH(r.ot)}${r.repetida ? ' — ¡ese número ya tiene carpeta en el año! Se guarda aparte («OT ' + escH(r.ot) + ' (2)») y no se toca la existente' : ''}</small></span></label>`;
+    }).join('');
+    document.getElementById('pcGuardar').hidden = !PC.nuevas.length;
+    document.getElementById('pcGuardar').textContent = `Guardar ${PC.nuevas.length} OT`;
+    pcEstado(PC.nuevas.length ? `${PC.nuevas.length} OT de la app no están en la carpeta. Marca las que quieras y pulsa «Guardar».` : `Todo al día ✓ — las OT de la app${anio ? ' de ' + anio : ''} ya están en la carpeta.`);
+  }catch(e){ console.error(e); pcEstado('Error: ' + (e.message || e), 'err'); }
+  finally{ PC.ocupado = false; pcPintarCarpeta(); }
+}
+function pcCargarScript(src){ return new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => ko(new Error('No se pudo bajar ' + src + '. ¿Hay internet?')); document.head.appendChild(s); }); }
+async function pcCargarLibs(){
+  if(!window.html2canvas) await pcCargarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  if(!(window.jspdf && window.jspdf.jsPDF)) await pcCargarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+}
+// Dónde cortar una hoja demasiado alta: al final del último bloque (tabla, título…) que cabe en una página
+function pcCortes(pg, H){
+  const top = pg.getBoundingClientRect().top;
+  const fines = [...pg.children].map(c => c.getBoundingClientRect().bottom - top).filter(b => b > 0);
+  const out = []; let ini = 0;
+  while(ini < H - 1){
+    if(H - ini <= PC_ALTO_HOJA){ out.push([ini, H]); break; }
+    const limite = ini + PC_ALTO_HOJA;
+    const ok = fines.filter(b => b <= limite && b > ini + 150);
+    const fin = ok.length ? Math.max(...ok) : limite;
+    out.push([ini, fin]); ini = fin;
+  }
+  return out;
+}
+// Fotos que van en el informe: las que tienen descripción asociada = las de un casillero (orden 1 a 12) y las adicionales con un
+// nombre propio. Quedan fuera las sueltas (IMG_8290, "Sin etiqueta"), las "Quitada de «…»" y las "(anterior)".
+function pcFotosParaInforme(fotos){
+  const nSlots = getFotoSlots().length;
+  const sinNombre = (s) => { const e = String(s || '').trim(); return !e || /^(img|dsc[nf]?|pxl|mvimg|wp|vid|image|imagen|photo|foto|pic|pict|sam|cam|signal|telegram)[\s_\-]*[\d(]/i.test(e) || /^[\d\s_\-.()]*$/.test(e) || /^sin etiqueta$/i.test(e); };
+  return (fotos || []).filter(f => {
+    if(!f || !f.storage_path) return false;
+    if(/^Quitada de /i.test(f.etiqueta || '') || /\(anterior\)\s*$/i.test(f.etiqueta || '')) return false;
+    if(f.orden >= 1 && f.orden <= nSlots) return true;
+    return !sinNombre(f.etiqueta);
+  }).slice().sort((a, b) => (a.orden || 0) - (b.orden || 0));
+}
+// Hoja "ANEXO — FOTOGRAFIAS": dos fotos por fila, cada una con su descripción debajo
+function pcAnexoFotos(rec, fotos){
+  const celda = (f) => `<div style="width:345px;text-align:center;font-size:11px;"><img crossorigin="anonymous" src="${workerUrl(f.storage_path)}?pdf=1" style="max-width:345px;max-height:250px;border:1px solid #999;"><br>${escH(f.etiqueta || '')}</div>`;
+  let filas = '';
+  for(let i = 0; i < fotos.length; i += 2) filas += `<div style="display:flex;gap:14px;justify-content:center;align-items:flex-start;margin:10px 0;">${fotos.slice(i, i + 2).map(celda).join('')}</div>`;
+  return `<div class="doc-page flujo">${docHeader(rec, 'ANEXO — FOTOGRAFIAS')}${filas}${docFooter()}</div>`;
+}
+async function pcGenerarPdf(rec, fotosInforme){
+  await pcCargarLibs();
+  const area = document.getElementById('printArea');
+  area.classList.add('exportando');
+  try{
+    area.innerHTML = pageDatosIngreso(rec) + pageInforme(rec) + (rec.aplicaElectrica ? pageElectrica(rec) : '') + (fotosInforme && fotosInforme.length ? pcAnexoFotos(rec, fotosInforme) : '');
+    await Promise.race([
+      Promise.all([...area.querySelectorAll('img')].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; }))),
+      new Promise(r => setTimeout(r, 30000))   // si alguna foto no carga en 30 s, se sigue sin ella
+    ]);
+    const pdf = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter' });
+    const MARG = 8 / 25.4 * 72, PT = (612 - 2 * MARG) / PC_ANCHO_HOJA, ESC = 2;
+    let primera = true;
+    for(const pg of area.querySelectorAll('.doc-page')){
+      const H = pg.getBoundingClientRect().height;
+      const lienzo = await window.html2canvas(pg, { scale: ESC, backgroundColor: '#fff', useCORS: true, logging: false, scrollX: 0, scrollY: 0 });
+      // Cabe en una hoja (si hace falta, un poco más chica, como al imprimir); si no, se corta en bloques
+      const esAnexo = pg.classList.contains('flujo');   // la hoja de fotos se corta entre filas; las demás se achican hasta caber en una hoja
+      const trozos = !esAnexo && H <= PC_ALTO_HOJA / ZOOM_MIN_HOJA || esAnexo && H <= PC_ALTO_HOJA ? [{ y0: 0, y1: H, k: Math.min(1, PC_ALTO_HOJA / H) }] : pcCortes(pg, H).map(([y0, y1]) => ({ y0, y1, k: 1 }));
+      for(const t of trozos){
+        const sy = Math.round(t.y0 * ESC), alto = Math.max(1, Math.min(lienzo.height - sy, Math.round((t.y1 - t.y0) * ESC)));
+        const c = document.createElement('canvas'); c.width = lienzo.width; c.height = alto;
+        const cx = c.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, c.width, c.height);
+        cx.drawImage(lienzo, 0, sy, lienzo.width, alto, 0, 0, c.width, alto);
+        if(!primera) pdf.addPage(); primera = false;
+        pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', MARG, MARG, PC_ANCHO_HOJA * PT * t.k, (alto / ESC) * PT * t.k);
+      }
+    }
+    return pdf.output('blob');
+  }finally{ area.innerHTML = ''; area.classList.remove('exportando'); }
+}
+// Nombre del archivo: INFORME OT 25950 (EQUIPO, KW, MARCA) (T).pdf — el equipo sale de "Equipo" de los datos de ingreso, la potencia y la
+// marca del motor (si no hay motor con ese dato, del primer componente que lo tenga). Lo que falte se omite. "(T)" = hecho en la tablet.
+function pcNombreInforme(data){
+  const t = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, 40);
+  const comps = data.componentes || [], motor = comps.find(c => c.nombre === 'MOTOR') || {};
+  const dato = (k) => t(motor[k]) || t((comps.find(c => t(c[k])) || {})[k]);
+  const partes = [t(data.diagnostico) || dato('equipo'), dato('potencia'), dato('marca')].filter(Boolean);
+  return pcNombreSeguro(`INFORME OT ${t(data.ot)}${partes.length ? ` (${partes.join(', ')})` : ''} (T)`).toUpperCase() + '.pdf';
+}
+async function pcEscribir(dir, nombre, blob){
+  const fh = await dir.getFileHandle(nombre, { create: true });
+  const w = await fh.createWritable(); await w.write(blob); await w.close();
+}
+async function pcGuardarOT(fila){
+  const { data, error } = await api('/ingresos/' + fila.id + '?join=full');
+  if(error || !data) throw new Error((error && error.message) || 'no se pudo leer la OT');
+  if(fila.completar){   // la carpeta ya existe: solo se agrega el informe, sin tocar fotos ni otros archivos
+    const pdf = await pcGenerarPdf(escRec(mapFromSupabase(data)), pcFotosParaInforme(data.fotos));
+    await pcEscribir(fila.carpetaHandle, pcNombreInforme(data), pdf);
+    return { carpeta: fila.carpetaNombre, fotos: 0 };
+  }
+  const nombreCli = (data.cliente || '').trim() || 'SIN CLIENTE';
+  let cli = pcCarpetaDeCliente(nombreCli);
+  if(!cli){
+    const nombre = pcNombreSeguro(nombreCli.toUpperCase()) || 'SIN CLIENTE';
+    cli = { nombre, handle: await PC.raiz.getDirectoryHandle(nombre, { create: true }), clave: pcClave(nombre) };
+    PC.clientes.set(nombre, cli);
+  }
+  // Nunca se escribe sobre una carpeta que ya existe: si hay una con ese nombre, esta va como "OT n (2)", "(3)"…
+  const existe = async (n) => { try{ await cli.handle.getDirectoryHandle(n); return true; }catch(e){ return false; } };
+  const base = 'OT ' + pcNombreSeguro(data.ot);
+  let nombreOT = fila.repetida ? `${base} (2)` : base;   // número repetido en el año: ya hay otra carpeta de esa OT (con cualquier nombre), esta va aparte
+  for(let k = 3; await existe(nombreOT) && k < 50; k++) nombreOT = `${base} (${k})`;
+  const otDir = await cli.handle.getDirectoryHandle(nombreOT, { create: true });
+  try{
+    const pdf = await pcGenerarPdf(escRec(mapFromSupabase(data)), pcFotosParaInforme(data.fotos));
+    await pcEscribir(otDir, pcNombreInforme(data), pdf);
+    const fotos = (data.fotos || []).slice().sort((a, b) => (a.orden || 0) - (b.orden || 0));
+    const usados = new Set(); let nFotos = 0;
+    for(let i = 0; i < fotos.length; i += 4){
+      await Promise.all(fotos.slice(i, i + 4).map(async (f, j) => {
+        const r = await fetch(workerUrl(f.storage_path)); if(!r.ok) throw new Error('foto ' + (i + j + 1) + ': HTTP ' + r.status);
+        const blob = await r.blob();
+        const ext = /png/.test(blob.type) ? '.png' : /webp/.test(blob.type) ? '.webp' : '.jpg';
+        const base = `${i + j + 1}. ${pcNombreSeguro(f.etiqueta) || 'FOTO'}`; let nombre = base + ext, n = 2;
+        while(usados.has(nombre.toLowerCase())) nombre = `${base} (${n++})${ext}`;
+        usados.add(nombre.toLowerCase());
+        await pcEscribir(otDir, nombre, blob); nFotos++;
+      }));
+    }
+    return { carpeta: `${cli.nombre}/${nombreOT}`, fotos: nFotos };
+  }catch(e){
+    // No dejar una carpeta de OT a medias: la próxima búsqueda la daría por guardada
+    try{ await cli.handle.removeEntry(nombreOT, { recursive: true }); }catch(e2){}
+    throw e;
+  }
+}
+async function pcGuardar(){
+  if(PC.ocupado) return;
+  const elegidas = [...document.querySelectorAll('.pcChk')].filter(c => c.checked).map(c => PC.nuevas[+c.dataset.i]);
+  if(!elegidas.length){ pcEstado('No hay ninguna OT marcada.', 'err'); return; }
+  if(!await pcPermiso()) return;
+  PC.ocupado = true; pcPintarCarpeta(); document.getElementById('pcGuardar').disabled = true;
+  const fallos = []; let ok = 0;
+  try{
+    for(const f of elegidas){
+      pcEstado(`Guardando ${ok + fallos.length + 1} de ${elegidas.length}… OT ${f.ot}`);
+      try{ await pcGuardarOT(f); ok++; PC.nuevas = PC.nuevas.filter(x => x !== f); }
+      catch(e){ console.error(e); fallos.push(`OT ${f.ot}: ${e.message || e}`); }
+    }
+  }finally{ PC.ocupado = false; document.getElementById('pcGuardar').disabled = false; pcPintarCarpeta(); }
+  document.getElementById('pcLista').innerHTML = '';
+  document.getElementById('pcGuardar').hidden = true;
+  pcEstado(`Listo: ${ok} OT guardadas en el PC.` + (fallos.length ? `\nCon error (se pueden reintentar con «Buscar OT nuevas»):\n` + fallos.join('\n') : ''), fallos.length ? 'err' : '');
+}
+document.getElementById('btnPc').addEventListener('click', pcAbrir);
+document.getElementById('pcElegir').addEventListener('click', pcElegir);
+document.getElementById('pcBuscar').addEventListener('click', pcBuscar);
+document.getElementById('pcGuardar').addEventListener('click', pcGuardar);
+document.getElementById('pcCerrar').addEventListener('click', () => { if(!PC.ocupado) document.getElementById('pcOv').hidden = true; });
+
+
+/* ============================================================
+   FOTOS — casilleros predefinidos + adicionales
+   ============================================================ */
+function getFotoSlots(){
+  const equipoNombre = ((state.componentes[0] && state.componentes[0].equipo) || '').trim() || 'EQUIPO';
+  return [
+    {key:'motobba_antes', label:`${equipoNombre} — Antes`},
+    {key:'motobba_despues', label:`${equipoNombre} — Después`},
+    {key:'caja_antes', label:'Caja eléctrica — Antes'},
+    {key:'caja_despues', label:'Caja eléctrica — Después'},
+    {key:'eje_antes', label:'Eje / Rotor — Antes'},
+    {key:'eje_despues', label:'Eje / Rotor — Después'},
+    {key:'bobinado_antes', label:'Bobinado — Antes'},
+    {key:'bobinado_despues', label:'Bobinado — Después'},
+    {key:'tapas_antes', label:'Tapas motor — Antes'},
+    {key:'tapas_despues', label:'Tapas motor — Después'},
+    {key:'placa_motor', label:'Placa motor'},
+    {key:'ot_grabado', label:'OT grabado en equipo'}
+  ];
+}
+
+let currentFotos = [];
+
+function renderFotosList(fotos){
+  currentFotos = fotos || [];
+  const slots = getFotoSlots();
+  const slotsEl = document.getElementById('fotoSlots');
+  slotsEl.innerHTML = slots.map((slot, idx) => {
+    // Buscamos por posición (orden) primero, para que el casillero no "pierda" su foto
+    // si el nombre del equipo cambia después de haber subido la imagen.
+    const found = currentFotos.find(f => f.orden === idx + 1) || currentFotos.find(f => f.etiqueta === slot.label);
+    const inner = found
+      ? (() => {
+          const url = workerUrl(found.storage_path);
+          return `<div class="thumb-wrap"><img src="${url}"></div><span class="badge-ok">${icon('check-circle')}</span><button class="remove-x" aria-label="Quitar del casillero" title="Quitar del casillero (la foto no se borra)" onclick="event.stopPropagation(); quitarFotoDeCasillero('${found.id}')">${icon('close')}</button>`;
+        })()
+      : `<div class="thumb-wrap"><span class="placeholder-icon">${icon('camera')}</span></div>`;
+    // Casillero con foto: al tocarlo se ve en grande (con Reemplazar / Eliminar). Casillero vacío: tomar o elegir foto.
+    return `<div class="foto-slot ${found?'filled':''}" id="slotwrap_${slot.key}" onclick="${found ? `verFotoForm('${found.id}')` : `abrirFotoChoice('${slot.key.replace(/'/g,"\\'")}','${slot.label.replace(/'/g,"\\'")}')`}">
+      ${inner}
+      <div class="slot-label">${slot.label}</div>
+    </div>`;
+  }).join('');
+
+  const extras = currentFotos.filter(f => !slots.some((s, idx) => f.orden === idx + 1 || f.etiqueta === s.label));
+  const extraEl = document.getElementById('fotosExtra');
+  extraEl.innerHTML = extras.length === 0
+    ? `<div class="extra-vacio"><span class="vacio-ico">${icon('camera')}</span><span>Sin fotos adicionales.</span></div>`
+    : extras.map(f => {
+        const url = workerUrl(f.storage_path);
+        return `<div class="extra-fotos-row">
+          <div class="thumb-ex"><img src="${url}" onclick="verFotoForm('${f.id}')" alt=""><span class="badge-ok">${icon('check-circle')}</span></div>
+<span onclick="verFotoForm('${f.id}')" style="cursor:pointer;">${escH(f.etiqueta) || 'Sin etiqueta'}</span>
+        </div>`;
+      }).join('');
+}
+
+async function refreshFotos(ingresoId){
+  const { data, error } = await api('/fotos?ingreso_id=' + ingresoId);
+  if(error){ console.error(error); return; }
+  renderFotosList(data);
+}
+
+async function ensureIngresoId(){
+  if(window.editingId) return window.editingId;
+  const ot = document.getElementById('f_ot').value.trim();
+  if(ot){
+    // Si ya existe un registro guardado con esta misma OT, lo usamos en vez de
+    // intentar crear uno nuevo (esto evita el bloqueo de "OT duplicada" al
+    // subir/reemplazar una foto de un registro que ya se había guardado antes).
+    try{
+      const { data: existente } = await api('/ingresos?ot=' + encodeURIComponent(ot));
+      if(existente && existente.length){
+        window.editingId = existente[0].id;
+        return window.editingId;
+      }
+    }catch(e){ console.error(e); }
+  }
+  showToast('Creando registro para guardar la foto...');
+  await saveRecord();
+  return window.editingId;
+}
+
+function sanitizarNombre(texto){
+  return (texto || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase();
+}
+
+function carpetaIngreso(ingresoId){
+  const fecha = document.getElementById('f_fecha').value.trim();
+  const cliente = document.getElementById('f_cliente').value.trim();
+  const ot = document.getElementById('f_ot').value.trim();
+  const partes = [fecha || null, sanitizarNombre(cliente) || null, ot ? ('OT' + sanitizarNombre(ot)) : null].filter(Boolean);
+  if(!fecha || !cliente || !ot) partes.push(ingresoId.slice(0,6));
+  return partes.join('_');
+}
+
+async function subirFotoASlot(file, etiqueta, orden){
+  if(!file.type || !file.type.startsWith('image/')){
+    showToast('El archivo seleccionado no es una imagen', 'error');
+    return;
+  }
+  if(file.size > CONFIG.MAX_FOTO_MB * 1024 * 1024){
+    showToast(`La foto pesa demasiado (máx. ${CONFIG.MAX_FOTO_MB}MB)`, 'error');
+    return;
+  }
+  // OT nueva: para guardar la foto la app primero crea la OT, y para eso necesita O.T., Cliente y Fecha.
+  // Si falta alguno, se avisa cuál (y se marca el campo) en vez de un error genérico.
+  if(!window.editingId && !validarFormulario()) return;
+  const ingresoId = await ensureIngresoId();
+  if(!ingresoId){ showToast('No se pudo crear el registro', 'error'); return; }
+  try{
+    const ot = document.getElementById('f_ot').value.trim() || ingresoId.slice(0,8);
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    // Las adicionales llevan un número mayor a los 12 casilleros y a cualquier foto ya existente: con "cantidad + 1" podían
+    // coincidir con el número de un casillero vacío y quedar escondidas dentro de él.
+    const numero = orden || Math.max(getFotoSlots().length + 1, ...(currentFotos || []).map(f => (f.orden || 0) + 1));
+    const nombreArchivo = `${numero}_${sanitizarNombre(etiqueta)}_OT${sanitizarNombre(ot)}.${ext}`;
+    const carpeta = carpetaIngreso(ingresoId);
+    const path = `${carpeta}/${nombreArchivo}`;
+    const { blob, esJpeg } = await comprimirImagen(file);
+    await subirFotoAWorker(path, blob, esJpeg ? 'image/jpeg' : (file.type || 'image/jpeg'));
+    const { error: insErr } = await api('/fotos', { method:'POST', body: { ingreso_id: ingresoId, storage_path: path, etiqueta, orden: numero } });
+    if(insErr) throw insErr;
+    showToast('Foto subida ✓');
+    await refreshFotos(ingresoId);
+  }catch(e){
+    console.error(e);
+    showToast('Error al subir la foto: ' + (e.message || 'revisa tu conexión'), 'error');
+  }
+}
+
+/* ---------- Elegir, para un casillero, una de las fotos que ya están subidas a la misma OT ----------
+   Típico: una OT importada desde la carpeta cuyas fotos llegaron como "adicionales" (IMG_8290…). La foto no se vuelve a
+   subir: se registra con el número y nombre del casillero y se quita su registro anterior (el archivo queda igual). */
+function fotosAdicionalesDeOT(){
+  const slots = getFotoSlots();
+  return (currentFotos || []).filter(f => !slots.some((s, i) => f.orden === i + 1 || f.etiqueta === s.label)).sort((a, b) => (a.orden || 0) - (b.orden || 0));
+}
+let _fotOtDestino = null;
+function abrirFotosOT(){
+  const key = _fotoChoiceKey, label = _fotoChoiceLabel;
+  cerrarFotoChoice();
+  const extras = fotosAdicionalesDeOT();
+  if(key === '__extra__' || !extras.length){ showToast('Esta OT no tiene fotos adicionales para elegir', 'error'); return; }
+  _fotOtDestino = { key, label };
+  document.getElementById('fotOtTitulo').textContent = `Elige la foto para «${label}»`;
+  document.getElementById('fotOtEstado').textContent = `${extras.length} foto(s) adicionales en esta OT.`;
+  document.getElementById('fotOtLista').innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">${extras.map(f => `
+    <button type="button" class="fpc-celda" data-id="${escH(f.id)}" title="${escH(f.etiqueta || '')}"><img src="${workerUrl(f.storage_path)}" alt="" loading="lazy"><span>${escH(f.etiqueta) || 'Sin etiqueta'}</span></button>`).join('')}</div>`;
+  document.querySelectorAll('#fotOtLista .fpc-celda').forEach(b => b.addEventListener('click', () => asignarFotoACasillero(b.dataset.id)));
+  document.getElementById('fotOtOv').hidden = false;
+}
+// Las fotos NUNCA se borran desde la OT: una foto que sale de un casillero (por quitarla o por reemplazarla) pasa a
+// "fotos adicionales". Se registra primero con su nuevo número y recién después se quita el registro viejo (el archivo no se toca).
+async function pasarAAdicional(foto, etiquetaNueva){
+  const slots = getFotoSlots();
+  const nuevoOrden = Math.max(slots.length + 1, ...(currentFotos || []).map(x => (x.orden || 0) + 1));
+  const choca = slots.some(s => s.label === foto.etiqueta);
+  const etiqueta = etiquetaNueva || (choca ? foto.etiqueta + ' (anterior)' : (foto.etiqueta || 'Sin etiqueta'));
+  const r = await api('/fotos', { method: 'POST', body: { ingreso_id: foto.ingreso_id || window.editingId, storage_path: foto.storage_path, etiqueta, orden: nuevoOrden } });
+  if(r.error) throw r.error;
+  const d = await api('/fotos/' + foto.id, { method: 'DELETE' }); if(d.error) throw d.error;
+}
+async function quitarFotoDeCasillero(fotoId){
+  const f = (currentFotos || []).find(x => x.id === fotoId), slot = f && slotDeFoto(f);
+  if(!f || !slot) return false;
+  if(!confirm(`¿Quitar esta foto de «${slot.label}»?\n\nNo se borra: queda en las fotos adicionales y la puedes volver a poner donde corresponda.`)) return false;
+  try{
+    await pasarAAdicional(f, `Quitada de «${slot.label}»`);
+    await refreshFotos(window.editingId);
+    showToast('Foto quitada del casillero (sigue en las adicionales)');
+    return true;
+  }catch(e){ console.error(e); showToast('No se pudo quitar la foto. Revisa tu conexión.', 'error'); return false; }
+}
+
+/* ---------- Vista previa con "Girar" antes de usar una foto ---------- */
+let _rot = null;
+function rotAjustar(){
+  if(!_rot) return;
+  const img = document.getElementById('rotImg'), caja = document.getElementById('rotCaja');
+  const iw = img.naturalWidth || 1, ih = img.naturalHeight || 1, lado = _rot.deg % 180 !== 0;
+  const fit = Math.min(caja.clientWidth / (lado ? ih : iw), caja.clientHeight / (lado ? iw : ih), 1);
+  img.style.width = Math.round(iw * fit) + 'px'; img.style.height = Math.round(ih * fit) + 'px';
+  img.style.transform = `rotate(${_rot.deg}deg)`;
+}
+// Devuelve {file, girada} o null si se cancela. Si no se gira, devuelve el mismo archivo.
+function previsualizarYGirar(file, titulo){
+  return new Promise(resolve => {
+    _rot = { file, deg: 0, url: URL.createObjectURL(file), resolve };
+    const img = document.getElementById('rotImg');
+    img.onload = rotAjustar; img.style.transform = ''; img.src = _rot.url;
+    document.getElementById('rotTitulo').textContent = titulo ? `Revisa la foto — ${titulo}` : 'Revisa la foto';
+    document.getElementById('rotOv').hidden = false;
+  });
+}
+function rotCerrar(res){
+  document.getElementById('rotOv').hidden = true;
+  const r = _rot; _rot = null; if(!r) return;
+  URL.revokeObjectURL(r.url); r.resolve(res);
+}
+function rotarArchivo(file, grados){
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const lado = grados % 180 !== 0, c = document.createElement('canvas');
+      c.width = lado ? img.naturalHeight : img.naturalWidth; c.height = lado ? img.naturalWidth : img.naturalHeight;
+      const cx = c.getContext('2d'); cx.translate(c.width / 2, c.height / 2); cx.rotate(grados * Math.PI / 180);
+      cx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      c.toBlob(b => { URL.revokeObjectURL(url); b ? resolve(new File([b], (file.name || 'foto').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' })) : reject(new Error('no se pudo girar la foto')); }, 'image/jpeg', 0.9);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('no se pudo leer la foto')); };
+    img.src = url;
+  });
+}
+document.getElementById('rotIzq').addEventListener('click', () => { if(_rot){ _rot.deg = (_rot.deg + 270) % 360; rotAjustar(); } });
+document.getElementById('rotDer').addEventListener('click', () => { if(_rot){ _rot.deg = (_rot.deg + 90) % 360; rotAjustar(); } });
+document.getElementById('rotCancelar').addEventListener('click', () => rotCerrar(null));
+document.getElementById('rotUsar').addEventListener('click', async () => {
+  if(!_rot) return;
+  if(_rot.deg === 0){ rotCerrar({ file: _rot.file, girada: false }); return; }
+  const btn = document.getElementById('rotUsar'); btn.disabled = true;
+  try{ rotCerrar({ file: await rotarArchivo(_rot.file, _rot.deg), girada: true }); }
+  catch(e){ console.error(e); showToast('No se pudo girar la foto', 'error'); }
+  finally{ btn.disabled = false; }
+});
+
+async function asignarFotoACasillero(fotoId){
+  const dest = _fotOtDestino, f = (currentFotos || []).find(x => x.id === fotoId);
+  if(!dest || !f || !window.editingId) return;
+  const slots = getFotoSlots(), orden = slots.findIndex(s => s.key === dest.key) + 1;
+  if(orden < 1) return;
+  const est = document.getElementById('fotOtEstado');
+  // Vista previa: se puede girar la foto antes de ponerla en el casillero
+  let archivo = null;
+  try{ const resp = await fetch(workerUrl(f.storage_path)); if(resp.ok){ const b = await resp.blob(); archivo = new File([b], (f.storage_path.split('/').pop() || 'foto.jpg'), { type: b.type || 'image/jpeg' }); } }catch(e){ console.warn('sin vista previa', e); }
+  let girada = false;
+  if(archivo){
+    const r = await previsualizarYGirar(archivo, dest.label);
+    if(!r) return;   // canceló: la ventana de fotos sigue abierta
+    girada = r.girada; archivo = r.file;
+  }
+  est.textContent = 'Moviendo la foto…';
+  const registrar = (cuerpo) => api('/fotos', { method: 'POST', body: Object.assign({ ingreso_id: window.editingId }, cuerpo) });
+  try{
+    if(girada){
+      // Foto girada = archivo nuevo: se sube al casillero (lo que había queda como adicional) y se quita el registro de la sin girar
+      document.getElementById('fotOtOv').hidden = true;
+      await subirFotoSlot(dest.key, dest.label, archivo);
+      const dd = await api('/fotos/' + f.id, { method: 'DELETE' }); if(dd.error) throw dd.error;
+      await refreshFotos(window.editingId);
+      return;
+    }
+    // 1) Si el casillero ya tenía una foto, pasa a ser adicional
+    const previa = currentFotos.find(x => x.id !== f.id && (x.orden === orden || x.etiqueta === dest.label));
+    if(previa) await pasarAAdicional(previa);
+    // 2) La foto elegida toma el casillero
+    const r2 = await registrar({ storage_path: f.storage_path, etiqueta: dest.label, orden });
+    if(r2.error) throw r2.error;
+    const d2 = await api('/fotos/' + f.id, { method: 'DELETE' }); if(d2.error) throw d2.error;
+    document.getElementById('fotOtOv').hidden = true;
+    await refreshFotos(window.editingId);
+    showToast('Foto movida a «' + dest.label + '» ✓');
+  }catch(e){
+    console.error(e);
+    est.textContent = 'No se pudo mover la foto: ' + (e.message || 'revisa tu conexión');
+    await refreshFotos(window.editingId);
+  }
+}
+document.getElementById('fotOtCerrar').addEventListener('click', () => { document.getElementById('fotOtOv').hidden = true; });
+
+async function subirFotoSlot(key, label, file){
+  if(!file) return;
+  const wrap = document.getElementById('slotwrap_' + key);
+  if(wrap){ wrap.insertAdjacentHTML('beforeend', `<div class="uploading"><span class="spinner"></span>Subiendo...</div>`); }
+  try{
+    const slotIndex = getFotoSlots().findIndex(s => s.key === key);
+    const orden = slotIndex >= 0 ? slotIndex + 1 : undefined;
+    // La foto anterior de este casillero se busca por posición o por nombre (igual que al dibujarlo),
+    // para que al reemplazar no quede una foto duplicada si el nombre del equipo cambió.
+    // La foto que estaba en el casillero NO se borra: pasa a fotos adicionales.
+    const existing = currentFotos.find(f => f.orden === orden || f.etiqueta === label);
+    if(existing){
+      try{ await pasarAAdicional(existing); }
+      catch(e){ console.error(e); showToast('No se pudo reemplazar la foto. Revisa tu conexión.', 'error'); return; }
+    }
+    await subirFotoASlot(file, label, orden);
+  }finally{
+    renderFotosList(currentFotos);
+  }
+}
+
+/* ---------- Menú Tomar foto / Elegir de galería ---------- */
+let _fotoChoiceKey = null, _fotoChoiceLabel = null;
+function abrirFotoChoice(key, label){
+  _fotoChoiceKey = key;
+  _fotoChoiceLabel = label;
+  document.getElementById('fotoChoiceTitle').textContent = label;
+  document.getElementById('fotoChoiceOt').hidden = key === '__extra__' || !fotosAdicionalesDeOT().length;   // solo si la OT tiene fotos sueltas para elegir
+  document.getElementById('fotoChoiceBackdrop').classList.add('open');
+  document.getElementById('fotoChoiceSheet').classList.add('open');
+}
+function cerrarFotoChoice(){
+  document.getElementById('fotoChoiceBackdrop').classList.remove('open');
+  document.getElementById('fotoChoiceSheet').classList.remove('open');
+}
+function dispararCamara(){ cerrarFotoChoice(); document.getElementById('globalCamInput').click(); }
+function dispararGaleria(){ cerrarFotoChoice(); document.getElementById('globalGalInput').click(); }
+async function procesarFotoElegida(file){
+  if(!file || !_fotoChoiceKey) return;
+  const key = _fotoChoiceKey, label = _fotoChoiceLabel;
+  const r = await previsualizarYGirar(file, key === '__extra__' ? '' : label);   // vista previa: se puede girar antes de subirla
+  if(!r) return;
+  if(key === '__extra__') subirFotoExtraArchivo(r.file, label || 'Sin etiqueta');
+  else subirFotoSlot(key, label, r.file);
+}
+document.getElementById('globalCamInput').addEventListener('change', function(){
+  const file = this.files[0]; this.value = '';
+  procesarFotoElegida(file);
+});
+document.getElementById('globalGalInput').addEventListener('change', function(){
+  const file = this.files[0]; this.value = '';
+  procesarFotoElegida(file);
+});
+
+function abrirFotoChoiceExtra(){
+  const etiqueta = document.getElementById('fotoEtiqueta').value.trim() || 'Sin etiqueta';
+  abrirFotoChoice('__extra__', etiqueta);
+}
+async function subirFotoExtraArchivo(file, etiqueta){
+  await subirFotoASlot(file, etiqueta);
+  document.getElementById('fotoEtiqueta').value = '';
+}
+
+/* ---------- Ver en grande una foto del formulario (con Reemplazar / Eliminar) ---------- */
+let lbEditable = false;   // true cuando la foto se abre desde el formulario (se puede reemplazar o borrar)
+function verFotoForm(fotoId){
+  const orden = (currentFotos || []).slice().sort((a, b) => (a.orden || 0) - (b.orden || 0));
+  const k = orden.findIndex(f => f.id === fotoId);
+  if(k < 0) return;
+  verFotos = orden; lbIndice = k; lbEditable = true;
+  mostrarFotoVer();
+  document.getElementById('lightbox').hidden = false;
+}
+// Casillero al que pertenece una foto (null si es una foto adicional)
+function slotDeFoto(f){
+  const slots = getFotoSlots();
+  const idx = slots.findIndex((s, i) => f.orden === i + 1 || f.etiqueta === s.label);
+  return idx >= 0 ? slots[idx] : null;
+}
+document.getElementById('lbEliminar').addEventListener('click', async () => {
+  const f = verFotos[lbIndice]; if(!f) return;
+  if(await quitarFotoDeCasillero(f.id)) cerrarFotoVer();
+});
+document.getElementById('lbReemplazar').addEventListener('click', () => {
+  const f = verFotos[lbIndice]; if(!f) return;
+  const slot = slotDeFoto(f);
+  cerrarFotoVer();
+  if(slot) abrirFotoChoice(slot.key, slot.label);
+});
+
+/* ============================================================
+   NAVEGACIÓN ENTRE VISTAS (Nuevo / Registros)
+   ============================================================ */
+function switchView(which){
+  const isForm = which === 'form';
+  document.getElementById('formView').style.display = isForm ? 'block' : 'none';
+  document.getElementById('sectionNav').style.display = isForm ? 'flex' : 'none';
+  document.getElementById('listView').style.display = isForm ? 'none' : 'block';
+  document.getElementById('btnSave').style.display = isForm ? 'flex' : 'none';
+  document.getElementById('navNew').classList.toggle('active', isForm);
+  document.getElementById('navList').classList.toggle('active', !isForm);
+  (isForm ? document.getElementById('formView') : document.getElementById('listView')).classList.add('view-fade');
+  if(!isForm){ renderList(); }
+}
+document.getElementById('navNew').addEventListener('click', () => { resetForm(); switchView('form'); });
+document.getElementById('navList').addEventListener('click', () => switchView('list'));
+
+/* ============================================================
+   MODO ADMINISTRADOR
+   ============================================================ */
+let isAdmin = esAdminSesion();   // el modo admin existe solo mientras el token de administrador siga vigente (12 h)
+
+function updateAdminButton(){
+  const btn = document.getElementById('btnAdmin');
+  document.getElementById('adminIcon').innerHTML = icon(isAdmin ? 'unlock' : 'lock');
+  document.getElementById('adminLabel').textContent = isAdmin ? 'Admin' : 'Admin';
+  btn.classList.toggle('admin-active', isAdmin);
+  btn.title = isAdmin ? 'Click para salir del modo administrador' : 'Click para entrar como administrador';
+  document.getElementById('btnPc').hidden = !(isAdmin && window.showDirectoryPicker);   // guardar en carpetas del PC: solo admin y solo Chrome/Edge de escritorio
+}
+async function toggleAdmin(){
+  if(isAdmin && esAdminSesion()){
+    if(confirm('¿Salir del modo administrador?')){
+      isAdmin = false;
+      borrarTk(TK_ADM);
+      updateAdminButton();
+      renderList(true);       // solo cambian los botones: no hace falta volver a consultar
+    }
+    return;
+  }
+  const pin = prompt('PIN de administrador:');
+  if(pin === null || !pin.trim()) return;
+  const r = await loginConPin(pin.trim());
+  if(!r.ok){
+    showToast(r.message || 'PIN incorrecto', 'error');
+  }else if(r.rol !== 'admin'){
+    showToast('Ese PIN no es de administrador', 'error');
+  }else{
+    showToast('Modo administrador activado (dura 12 horas)');
+  }
+  isAdmin = esAdminSesion();
+  updateAdminButton();
+  renderList(true);
+}
+document.getElementById('btnAdmin').addEventListener('click', toggleAdmin);
+updateAdminButton();
+
+renderFotosList([]);
+refreshCount();
+
+/* ============================================================
+   ESTADO DE CONEXIÓN
+   ============================================================ */
+function actualizarEstadoConexion(){
+  const el = document.getElementById('connStatus');
+  const online = navigator.onLine;
+  el.classList.toggle('offline', !online);
+  el.innerHTML = online ? '<span class="dot"></span> En línea' : '<span class="dot"></span> Sin conexión';
+}
+window.addEventListener('online', actualizarEstadoConexion);
+window.addEventListener('offline', actualizarEstadoConexion);
+actualizarEstadoConexion();
+
+/* ============================================================
+/* ============================================================
+/* ============================================================
+   COMBOBOX DE CLIENTE — lista de sugerencias + opción de escribir uno nuevo
+   ============================================================ */
+const CLIENTES_SUGERIDOS = [
+  'CCU SANTIAGO','MINERA GOLDFIELDS','SOPROLE','INDURA','ECUSA VESPUCIO','ANDINA',
+  'EVERCRISP','ECUSA','VIÑA CONCHA Y TORO','ICB','WATTS OSORNO','KROSS','WATTS LONQUEN',
+  'CIRCULAR','SURLAT','CAMILO FERRON','CERVECERIA KUNSTMANN','CPW','RUBERMIX','BRAUN MEDICAL',
+  'EMBONOR CON CON','ENVASES CENTRAL','NESTLE MAIPU','PLASCO','EASA','TECNOELECTRICA VALPARAISO',
+  'VIÑA SAN PEDRO TARAPACA'
+];
+
+function renderClienteDropdown(){
+  const dd = document.getElementById('clienteDropdown');
+  const q = document.getElementById('f_cliente').value.trim().toUpperCase();
+  const matches = q ? CLIENTES_SUGERIDOS.filter(c => c.includes(q)) : CLIENTES_SUGERIDOS;
+  dd.innerHTML = matches.length
+    ? matches.map(c => `<div class="combo-option" onclick="seleccionarCliente('${c.replace(/'/g,"\\'")}')">${c}</div>`).join('')
+    : `<div class="combo-empty">Sin coincidencias en la lista — puedes escribir el nombre igual, se guardará tal cual.</div>`;
+}
+function seleccionarCliente(nombre){
+  document.getElementById('f_cliente').value = nombre;
+  cerrarClienteDropdown();
+}
+function abrirClienteDropdown(){
+  document.getElementById('clienteDropdown').classList.add('open');
+  document.getElementById('clienteChevron').classList.add('open');
+  renderClienteDropdown();
+}
+function cerrarClienteDropdown(){
+  document.getElementById('clienteDropdown').classList.remove('open');
+  document.getElementById('clienteChevron').classList.remove('open');
+}
+document.getElementById('clienteChevron').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('clienteDropdown').classList.contains('open') ? cerrarClienteDropdown() : abrirClienteDropdown();
+});
+document.getElementById('f_cliente').addEventListener('focus', abrirClienteDropdown);
+document.getElementById('f_cliente').addEventListener('input', renderClienteDropdown);
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('#clienteCombo')) cerrarClienteDropdown();
+});
+
+/* ============================================================
+   TEXTO EN MAYÚSCULAS AUTOMÁTICO
+   Convierte lo que se escribe en cualquier campo de texto o área
+   de texto a mayúsculas, igual que los formatos oficiales impresos.
+   No modifica datos ya guardados hasta que se vuelvan a editar.
+   ============================================================ */
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  const esTexto = el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && el.type === 'text');
+  if(!esTexto) return;
+  const mayus = el.value.toUpperCase();
+  if(mayus === el.value) return;
+  const inicio = el.selectionStart, fin = el.selectionEnd;
+  el.value = mayus;
+  // Restaurar la posición del cursor para que no salte al final al escribir en medio del texto
+  if(inicio !== null) el.setSelectionRange(inicio, fin);
+}, true); // fase de captura: se ejecuta ANTES que los oninput de cada campo (updateComp, etc.),
+          // así el valor que esos manejadores leen y guardan en el estado ya viene en mayúsculas.
+
+/* ============================================================
+   REGISTRO DEL SERVICE WORKER (PWA instalable)
+   ============================================================ */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(e => console.error('SW error:', e));
+  });
+}
+</script>
+</body>
+</html>
