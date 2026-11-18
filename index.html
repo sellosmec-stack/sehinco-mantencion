@@ -228,6 +228,13 @@
   .fab-save:active{ transform:scale(.96); }
   .fab-save:disabled{ background:var(--surface-3); color:var(--text-faint); box-shadow:none; }
   .fab-save svg{ width:18px; height:18px; }
+  .fab-cancel{
+    position:fixed; right:148px; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:45;
+    display:flex; align-items:center; gap:6px; padding:14px 18px; border-radius:var(--radius-full);
+    background:var(--surface-3); color:var(--text); border:1px solid var(--border, rgba(128,128,128,.4)); font-family:var(--sans); font-weight:800; font-size:14.5px;
+    box-shadow:0 6px 16px rgba(0,0,0,.18); cursor:pointer; transition:transform .12s;
+  }
+  .fab-cancel:active{ transform:scale(.96); }
 
   /* ================= LIST VIEW ================= */
   #listView{ display:none; }
@@ -397,6 +404,7 @@
     .grid2{ grid-template-columns:repeat(3, 1fr); }
     .tabbar{ padding-left:18vw; padding-right:18vw; }
     .fab-save{ right:calc(18vw + 16px); }
+    .fab-cancel{ right:calc(18vw + 148px); }
   }
   @media (min-width:1100px){
     .container{ max-width:1080px; }
@@ -405,6 +413,7 @@
     .section-nav{ flex-wrap:wrap; overflow-x:visible; }
     .tabbar{ padding-left:26vw; padding-right:26vw; }
     .fab-save{ right:calc(26vw + 16px); }
+    .fab-cancel{ right:calc(26vw + 148px); }
   }
   /* En pantallas grandes, evita que el switch de Motor/Bomba y las tarjetas se vean estirados */
   @media (min-width:720px){
@@ -951,6 +960,7 @@
 </div>
 
 <!-- ============================================================ NAVEGACIÓN INFERIOR ============================================================ -->
+<button class="fab-cancel" id="btnCancelar" type="button">✕ Cancelar</button>
 <button class="fab-save" id="btnSave"><span class="fab-icon"></span><span id="btnSaveLabel">Guardar</span></button>
 
 <nav class="tabbar">
@@ -1419,6 +1429,17 @@ async function saveRecord(){
   }
 }
 document.getElementById('btnSave').addEventListener('click', saveRecord);
+// Cancelar: descarta lo que hay en pantalla sin guardar y deja el formulario en blanco
+document.getElementById('btnCancelar').addEventListener('click', () => {
+  const editando = !!window.editingId;
+  const msg = editando
+    ? '¿Cancelar y cerrar este informe SIN guardar los cambios que hiciste ahora?\n\nLo que ya estaba guardado queda como estaba (las fotos que subiste durante esta sesión ya quedaron registradas).'
+    : '¿Cancelar este informe? Se borra todo lo que escribiste y NO se guarda nada.';
+  if(!confirm(msg)) return;
+  resetForm();
+  window.scrollTo(0, 0);
+  showToast(editando ? 'Informe cerrado sin guardar los cambios' : 'Informe cancelado: no se guardó nada');
+});
 
 function resetForm(){
   window.editingId = null; ocultarAvisoOt(); _otSuprimida = '';
@@ -2106,7 +2127,7 @@ async function printRecord(id){
   abrirOpcionesImpresion(_recImprimir);
 }
 // Cambia cada vez que se publica una versión nueva: sirve para comprobar que el tablet/navegador ya la está usando
-const APP_VERSION = '2026-11-18 · informe actualizado en el PC';
+const APP_VERSION = '2026-11-18 · botón Cancelar en Nuevo';
 function abrirOpcionesImpresion(rec){
   document.getElementById('poVersion').textContent = 'Versión de la app: ' + APP_VERSION;
   const nFotos = (rec.fotos || []).length;
@@ -3055,6 +3076,7 @@ function switchView(which){
   document.getElementById('sectionNav').style.display = isForm ? 'flex' : 'none';
   document.getElementById('listView').style.display = isForm ? 'none' : 'block';
   document.getElementById('btnSave').style.display = isForm ? 'flex' : 'none';
+  document.getElementById('btnCancelar').style.display = isForm ? 'flex' : 'none';
   document.getElementById('navNew').classList.toggle('active', isForm);
   document.getElementById('navList').classList.toggle('active', !isForm);
   (isForm ? document.getElementById('formView') : document.getElementById('listView')).classList.add('view-fade');
