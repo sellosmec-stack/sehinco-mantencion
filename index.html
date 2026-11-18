@@ -888,6 +888,8 @@
     <p>Para las OT hechas en la tablet que aún no están en la carpeta del año: crea <b>CLIENTE / OT número</b> con el informe en PDF (el mismo de imprimir) y todas sus fotos. Solo en Chrome o Edge del computador.</p>
     <p id="pcCarpeta">Aún no elegiste la carpeta del año (por ejemplo «INFORMES TECNICOS Y FOTOS 2026»).</p>
     <div class="po-botones"><button id="pcElegir">Elegir carpeta del año…</button><button id="pcBuscar" class="primario" disabled>Buscar OT nuevas</button></div>
+    <p style="margin:14px 0 6px;"><b>¿Modificaste una OT que ya estaba guardada?</b> «Buscar» también te la ofrece si la modificaste después de guardar su informe. Si no aparece, escribe su número y guarda su informe actualizado dentro de su carpeta (el informe anterior no se pierde):</p>
+    <div style="display:flex;gap:8px;"><input type="text" id="pcOtManual" inputmode="numeric" autocomplete="off" placeholder="N° de OT" style="flex:1;min-width:0;height:48px;border-radius:12px;border:1px solid var(--border-strong);padding:0 12px;font-size:16px;background:var(--surface);color:var(--text);"><button id="pcActualizar" disabled style="height:48px;border-radius:12px;border:1px solid var(--border-strong);background:var(--surface-2);color:var(--text);font-size:15px;font-weight:700;padding:0 14px;cursor:pointer;">Actualizar informe</button></div>
     <div id="pcLista" style="margin-top:12px;"></div>
     <div class="po-botones"><button id="pcCerrar">Cerrar</button><button id="pcGuardar" class="primario" hidden>Guardar</button></div>
     <p id="pcEstado"></p>
@@ -2104,7 +2106,7 @@ async function printRecord(id){
   abrirOpcionesImpresion(_recImprimir);
 }
 // Cambia cada vez que se publica una versión nueva: sirve para comprobar que el tablet/navegador ya la está usando
-const APP_VERSION = '2026-11-18 · fecha en cada foto';
+const APP_VERSION = '2026-11-18 · informe actualizado en el PC';
 function abrirOpcionesImpresion(rec){
   document.getElementById('poVersion').textContent = 'Versión de la app: ' + APP_VERSION;
   const nFotos = (rec.fotos || []).length;
@@ -2258,6 +2260,7 @@ async function pcAbrir(){
 function pcPintarCarpeta(){
   document.getElementById('pcCarpeta').textContent = PC.raiz ? `Carpeta: «${PC.raiz.name}»` : 'Aún no elegiste la carpeta del año (por ejemplo «INFORMES TECNICOS Y FOTOS 2026»).';
   document.getElementById('pcBuscar').disabled = !PC.raiz || PC.ocupado;
+  document.getElementById('pcActualizar').disabled = !PC.raiz || PC.ocupado;
 }
 async function pcElegir(){
   try{
@@ -2305,6 +2308,15 @@ async function pcOtTieneInforme(id){
   for(const c of (data.componentes || [])){ const k = claves.find(x => t(c[x])); if(k) return `${c.nombre || 'componente'}: ${k} = «${t(c[k]).slice(0, 25)}»`; }
   return '';
 }
+// Fecha (ms) del PDF más nuevo de la carpeta de la OT; 0 si no tiene ninguno (los de la propia app, "(T)", también cuentan)
+async function pcPdfMasNuevo(dir){
+  let max = 0;
+  for await (const [n, h] of dir.entries()){
+    if(h.kind === 'file' && /\.pdf$/i.test(n) && !n.startsWith('~$')){ const f = await h.getFile(); max = Math.max(max, f.lastModified || 1); }
+  }
+  return max;
+}
+const pcFechaHora = (ms) => new Date(ms).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
 // ¿La carpeta de la OT ya tiene algún informe PDF? (los de la propia app, "(tablet)", también cuentan)
 async function pcTienePdf(dir){
   for await (const [n, h] of dir.entries()){ if(h.kind === 'file' && /\.pdf$/i.test(n) && !n.startsWith('~$')) return true; }
@@ -2347,12 +2359,23 @@ async function pcBuscar(){
     await Promise.all(Array.from({ length: 6 }, async () => {
       while(sig < candidatasSinPdf.length){
         const c = candidatasSinPdf[sig++];
-        try{ if(!await pcTienePdf(c.carpeta.handle) && (c.motivo = await pcOtTieneInforme(c.fila.id))) PC.nuevas.push({ ...c.fila, completar: true, motivoInforme: c.motivo, carpetaHandle: c.carpeta.handle, carpetaNombre: c.carpeta.nombre, carpetaCliente: c.carpeta.cliente }); }catch(e){ console.warn('no se pudo revisar', c.carpeta.nombre, e); }
+        try{
+          const pdfMs = await pcPdfMasNuevo(c.carpeta.handle);
+          const dest = { carpetaHandle: c.carpeta.handle, carpetaNombre: c.carpeta.nombre, carpetaCliente: c.carpeta.cliente };
+          if(!pdfMs){
+            if(c.motivo = await pcOtTieneInforme(c.fila.id)) PC.nuevas.push({ ...c.fila, completar: true, motivoInforme: c.motivo, ...dest });
+          }else if(c.fila.updated_at){
+            // La OT se modificó (datos o fotos) DESPUÉS de la fecha del último informe de su carpeta: se ofrece el informe actualizado
+            const um = Date.parse(String(c.fila.updated_at).replace(' ', 'T') + 'Z');
+            if(um && um > pdfMs + 60000) PC.nuevas.push({ ...c.fila, actualizar: true, pdfMs, updatedMs: um, ...dest });
+          }
+        }catch(e){ console.warn('no se pudo revisar', c.carpeta.nombre, e); }
       }
     }));
     PC.nuevas.sort((a, b) => String(b.ot).localeCompare(String(a.ot), 'es', { numeric: true }));
     document.getElementById('pcLista').innerHTML = PC.nuevas.map((r, i) => {
       const cli = (r.cliente || '').trim() || 'SIN CLIENTE', c = pcCarpetaDeCliente(cli);
+      if(r.actualizar) return `<label class="pc-fila"><input type="checkbox" class="pcChk" data-i="${i}" checked><span><b>OT ${escH(r.ot)}</b> · ${escH(cli)} · ${escH(r.fecha || '')}<small>Informe desactualizado: la carpeta («${escH((r.carpetaCliente ? r.carpetaCliente + ' / ' : '') + r.carpetaNombre)}») tiene un informe del ${escH(pcFechaHora(r.pdfMs))}, pero la OT se modificó el ${escH(pcFechaHora(r.updatedMs))}. Se guarda el informe actualizado dentro de esa carpeta; si tiene el mismo nombre, el anterior queda como «… (versión anterior).pdf».</small></span></label>`;
       if(r.completar) return `<label class="pc-fila"><input type="checkbox" class="pcChk" data-i="${i}" checked><span><b>OT ${escH(r.ot)}</b> · ${escH(cli)} · ${escH(r.fecha || '')}<small>Ya tiene carpeta («${escH((r.carpetaCliente ? r.carpetaCliente + ' / ' : '') + r.carpetaNombre)}») pero sin informe PDF: se agrega solo el informe «(T)»; no se toca nada más. Datos de informe en la app: ${escH(r.motivoInforme || '')}</small></span></label>`;
       return `<label class="pc-fila"><input type="checkbox" class="pcChk" data-i="${i}" checked><span><b>OT ${escH(r.ot)}</b> · ${escH(cli)} · ${escH(r.fecha || '')}<small>Va a: ${c ? escH(c.nombre) : escH(pcNombreSeguro(cli.toUpperCase())) + ' (carpeta nueva)'} / OT ${escH(r.ot)}${r.repetida ? ' — ¡ese número ya tiene carpeta en el año! Se guarda aparte («OT ' + escH(r.ot) + ' (2)») y no se toca la existente' : ''}</small></span></label>`;
     }).join('');
@@ -2447,6 +2470,16 @@ async function pcEscribir(dir, nombre, blob){
 async function pcGuardarOT(fila){
   const { data, error } = await api('/ingresos/' + fila.id + '?join=full');
   if(error || !data) throw new Error((error && error.message) || 'no se pudo leer la OT');
+  if(fila.actualizar){   // la carpeta ya tiene informe pero la OT cambió: se guarda el actualizado en la MISMA carpeta
+    const pdf = await pcGenerarPdf(escRec(mapFromSupabase(data)), pcFotosParaInforme(data.fotos));
+    const nombre = pcNombreInforme(data);
+    try{   // si ya hay uno con este nombre, se guarda aparte como "(versión anterior)" antes de reemplazarlo
+      const viejo = await (await fila.carpetaHandle.getFileHandle(nombre)).getFile();
+      await pcEscribir(fila.carpetaHandle, nombre.replace(/\.pdf$/i, '') + ' (versión anterior).pdf', viejo);
+    }catch(e){ if(e.name !== 'NotFoundError') throw e; }
+    await pcEscribir(fila.carpetaHandle, nombre, pdf);
+    return { carpeta: fila.carpetaNombre, fotos: 0 };
+  }
   if(fila.completar){   // la carpeta ya existe: solo se agrega el informe, sin tocar fotos ni otros archivos
     const pdf = await pcGenerarPdf(escRec(mapFromSupabase(data)), pcFotosParaInforme(data.fotos));
     await pcEscribir(fila.carpetaHandle, pcNombreInforme(data), pdf);
@@ -2508,6 +2541,31 @@ async function pcGuardar(){
 }
 document.getElementById('btnPc').addEventListener('click', pcAbrir);
 document.getElementById('pcElegir').addEventListener('click', pcElegir);
+// Actualizar a mano el informe de UNA OT ya guardada (por si el programa no la detectó): se escribe dentro de su carpeta
+async function pcActualizarManual(){
+  if(PC.ocupado) return;
+  const num = (document.getElementById('pcOtManual').value.match(/\d{3,7}/) || [''])[0];
+  if(!num){ pcEstado('Escribe el número de la OT (solo números).', 'err'); return; }
+  if(!await pcPermiso()) return;
+  PC.ocupado = true; pcPintarCarpeta();
+  try{
+    pcEstado(`Buscando la OT ${num}…`);
+    const { numeros, clientes, carpetas } = await pcEscanear(PC.raiz); PC.clientes = clientes;
+    const { data, error } = await api('/resumen');
+    if(error) throw new Error(error.message || 'no se pudo consultar la lista de OT');
+    const filas = (data || []).filter(r => String(r.ot) === num).sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')) || String(b.created_at || '').localeCompare(String(a.created_at || '')));
+    if(!filas.length){ pcEstado(`La OT ${num} no está en la app.`, 'err'); return; }
+    const cs = carpetas.get(num) || [];
+    if(!cs.length){ pcEstado(`La OT ${num} todavía no tiene carpeta en «${PC.raiz.name}». Usa «Buscar OT nuevas» para crearla con su informe y sus fotos.`, 'err'); return; }
+    const c = cs[0];
+    pcEstado(`Guardando el informe actualizado de la OT ${num}…`);
+    await pcGuardarOT({ ...filas[0], actualizar: true, carpetaHandle: c.handle, carpetaNombre: c.nombre, carpetaCliente: c.cliente });
+    pcEstado(`Listo ✓ — informe actualizado de la OT ${num} guardado en «${(c.cliente ? c.cliente + ' / ' : '') + c.nombre}».` + (cs.length > 1 ? `\n(Ojo: hay ${cs.length} carpetas con ese número en el año; se usó la primera.)` : ''));
+  }catch(e){ console.error(e); pcEstado('Error: ' + (e.message || e), 'err'); }
+  finally{ PC.ocupado = false; pcPintarCarpeta(); }
+}
+document.getElementById('pcActualizar').addEventListener('click', pcActualizarManual);
+document.getElementById('pcOtManual').addEventListener('keydown', e => { if(e.key === 'Enter') pcActualizarManual(); });
 document.getElementById('pcBuscar').addEventListener('click', pcBuscar);
 document.getElementById('pcGuardar').addEventListener('click', pcGuardar);
 document.getElementById('pcCerrar').addEventListener('click', () => { if(!PC.ocupado) document.getElementById('pcOv').hidden = true; });
