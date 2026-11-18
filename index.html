@@ -364,6 +364,8 @@
   .po-fila{ display:flex; align-items:center; gap:12px; padding:12px 4px; border-top:1px solid var(--border); text-transform:none !important; font-family:var(--sans) !important; font-size:16px !important; font-weight:600 !important; color:var(--text) !important; cursor:pointer; }
   .po-fila input{ width:22px; height:22px; accent-color:var(--accent); flex-shrink:0; }
   .po-box .po-version{ margin:12px 0 0; font-size:11px; color:var(--text-faint); text-align:center; font-family:var(--mono); }
+  .ffecha{ display:block; font-family:var(--mono); font-size:10.5px; font-weight:400; color:var(--text-faint,#6B7280); margin-top:2px; text-transform:none; letter-spacing:0; }
+  .ffecha.antes{ color:#D32F2F; font-weight:700; }
   .po-botones{ display:flex; gap:10px; margin-top:16px; }
   .po-botones button{ flex:1; height:48px; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); font-size:16px; font-weight:700; cursor:pointer; }
   .po-botones .primario{ background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
@@ -1724,7 +1726,7 @@ async function renderVer(arriba){
   verFotos = (rec.fotos || []).slice().sort((a, b) => (a.orden || 0) - (b.orden || 0));
   const fotosHtml = verFotos.length
     ? `<div class="ver-fotos" id="vs-fotos"><h3>FOTOGRAFÍAS (${verFotos.length}) — toca una para verla en grande</h3><div class="ver-fotos-grid">${
-        verFotos.map((f, k) => `<figure onclick="abrirFotoVer(${k})"><img loading="lazy" src="${workerUrl(f.storage_path)}" alt=""><figcaption>${escH(f.etiqueta || '')}</figcaption></figure>`).join('')
+        verFotos.map((f, k) => `<figure onclick="abrirFotoVer(${k})"><img loading="lazy" src="${workerUrl(f.storage_path)}" alt=""><figcaption>${escH(f.etiqueta || '')}${htmlFechaFoto(f, '')}</figcaption></figure>`).join('')
       }</div></div>`
     : `<div class="ver-fotos" id="vs-fotos"><h3>FOTOGRAFÍAS</h3><p style="font-size:13px;color:#555;margin:0;">Sin fotos cargadas para esta OT.</p></div>`;
   document.getElementById('verChipElec').hidden = !rec.aplicaElectrica;
@@ -1769,7 +1771,9 @@ function mostrarFotoVer(){
   document.getElementById('lbMover').textContent = tieneCasillero ? 'Mover a otro casillero' : 'Poner en un casillero';
   document.getElementById('lbDescripcion').hidden = !(lbEditable && !tieneCasillero);
   document.getElementById('lbImg').src = workerUrl(f.storage_path);
-  document.getElementById('lbCap').textContent = `${f.etiqueta || ''} (${lbIndice + 1} / ${verFotos.length})`.trim();
+  const feIso = fechaDeFoto(f), feOt = lbEditable ? fechaOtForm() : '';
+  const feTxt = feIso ? ` · 📅 ${feIso.split('-').reverse().join('-')}${feOt && feIso < feOt ? ' ⚠ anterior a la OT' : ''}` : '';
+  document.getElementById('lbCap').textContent = `${f.etiqueta || ''}${feTxt} (${lbIndice + 1} / ${verFotos.length})`.trim();
 }
 function cerrarFotoVer(){ document.getElementById('lightbox').hidden = true; document.getElementById('lbImg').removeAttribute('src'); }
 function fotoVerIr(d){ const n = lbIndice + d; if(n < 0 || n >= verFotos.length) return; lbIndice = n; mostrarFotoVer(); }
@@ -2100,7 +2104,7 @@ async function printRecord(id){
   abrirOpcionesImpresion(_recImprimir);
 }
 // Cambia cada vez que se publica una versión nueva: sirve para comprobar que el tablet/navegador ya la está usando
-const APP_VERSION = '2026-11-18 · mover fotos y cambiar descripción';
+const APP_VERSION = '2026-11-18 · fecha en cada foto';
 function abrirOpcionesImpresion(rec){
   document.getElementById('poVersion').textContent = 'Versión de la app: ' + APP_VERSION;
   const nFotos = (rec.fotos || []).length;
@@ -2549,7 +2553,7 @@ function renderFotosList(fotos){
     // Casillero con foto: al tocarlo se ve en grande (con Reemplazar / Eliminar). Casillero vacío: tomar o elegir foto.
     return `<div class="foto-slot ${found?'filled':''}" id="slotwrap_${slot.key}" onclick="${found ? `verFotoForm('${found.id}')` : `abrirFotoChoice('${slot.key.replace(/'/g,"\\'")}','${slot.label.replace(/'/g,"\\'")}')`}">
       ${inner}
-      <div class="slot-label">${slot.label}</div>
+      <div class="slot-label">${slot.label}${found ? htmlFechaFoto(found, fechaOtForm()) : ''}</div>
     </div>`;
   }).join('');
 
@@ -2561,7 +2565,7 @@ function renderFotosList(fotos){
         const url = workerUrl(f.storage_path);
         return `<div class="extra-fotos-row">
           <div class="thumb-ex"><img src="${url}" onclick="verFotoForm('${f.id}')" alt=""><span class="badge-ok">${icon('check-circle')}</span></div>
-<span onclick="verFotoForm('${f.id}')" style="cursor:pointer;">${escH(f.etiqueta) || 'Sin etiqueta'}</span>
+<span onclick="verFotoForm('${f.id}')" style="cursor:pointer;">${escH(f.etiqueta) || 'Sin etiqueta'}${htmlFechaFoto(f, fechaOtForm())}</span>
         </div>`;
       }).join('');
 }
@@ -2600,6 +2604,27 @@ function sanitizarNombre(texto){
     .toUpperCase();
 }
 
+/* ---------- Fecha de cada foto ----------
+   La tabla de fotos no tiene columna de fecha, así que la fecha del archivo (cuándo se sacó la foto) viaja dentro del nombre del
+   archivo guardado: "..._OT28017_F20261114.jpg". Las fotos subidas antes de este cambio no la tienen ("sin fecha"). */
+function sufijoFechaFoto(file){
+  const ms = file && file.lastModified;
+  if(!ms || ms < 946684800000) return '';
+  const d = new Date(ms);
+  return '_F' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+}
+function fechaDeFoto(f){
+  const m = String((f && f.storage_path) || '').match(/_F(\d{4})(\d{2})(\d{2})\.[a-z0-9]+$/i);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+}
+const fechaOtForm = () => ((document.getElementById('f_fecha') || {}).value || '').slice(0, 10);
+function htmlFechaFoto(f, fechaOt, conSinFecha){
+  const iso = fechaDeFoto(f);
+  if(!iso) return conSinFecha ? '<span class="ffecha">📅 sin fecha</span>' : '';
+  const antes = !!fechaOt && iso < fechaOt;
+  return `<span class="ffecha${antes ? ' antes' : ''}">📅 ${iso.split('-').reverse().join('-')}${antes ? ' · anterior a la OT' : ''}</span>`;
+}
+
 function carpetaIngreso(ingresoId){
   const fecha = document.getElementById('f_fecha').value.trim();
   const cliente = document.getElementById('f_cliente').value.trim();
@@ -2629,7 +2654,7 @@ async function subirFotoASlot(file, etiqueta, orden){
     // Las adicionales llevan un número mayor a los 12 casilleros y a cualquier foto ya existente: con "cantidad + 1" podían
     // coincidir con el número de un casillero vacío y quedar escondidas dentro de él.
     const numero = orden || Math.max(getFotoSlots().length + 1, ...(currentFotos || []).map(f => (f.orden || 0) + 1));
-    const nombreArchivo = `${numero}_${sanitizarNombre(etiqueta)}_OT${sanitizarNombre(ot)}.${ext}`;
+    const nombreArchivo = `${numero}_${sanitizarNombre(etiqueta)}_OT${sanitizarNombre(ot)}${sufijoFechaFoto(file)}.${ext}`;
     const carpeta = carpetaIngreso(ingresoId);
     const path = `${carpeta}/${nombreArchivo}`;
     const { blob, esJpeg } = await comprimirImagen(file);
@@ -2661,7 +2686,7 @@ function abrirFotosOT(){
   document.getElementById('fotOtTitulo').textContent = `Elige la foto para «${label}»`;
   document.getElementById('fotOtEstado').textContent = `${extras.length} foto(s) adicionales en esta OT.`;
   document.getElementById('fotOtLista').innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">${extras.map(f => `
-    <button type="button" class="fpc-celda" data-id="${escH(f.id)}" title="${escH(f.etiqueta || '')}"><img src="${workerUrl(f.storage_path)}" alt="" loading="lazy"><span>${escH(f.etiqueta) || 'Sin etiqueta'}</span></button>`).join('')}</div>`;
+    <button type="button" class="fpc-celda" data-id="${escH(f.id)}" title="${escH(f.etiqueta || '')}"><img src="${workerUrl(f.storage_path)}" alt="" loading="lazy"><span>${escH(f.etiqueta) || 'Sin etiqueta'}${htmlFechaFoto(f, fechaOtForm(), true)}</span></button>`).join('')}</div>`;
   document.querySelectorAll('#fotOtLista .fpc-celda').forEach(b => b.addEventListener('click', () => asignarFotoACasillero(b.dataset.id)));
   document.getElementById('fotOtOv').hidden = false;
 }
@@ -2721,7 +2746,7 @@ function rotarArchivo(file, grados){
       c.width = lado ? img.naturalHeight : img.naturalWidth; c.height = lado ? img.naturalWidth : img.naturalHeight;
       const cx = c.getContext('2d'); cx.translate(c.width / 2, c.height / 2); cx.rotate(grados * Math.PI / 180);
       cx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
-      c.toBlob(b => { URL.revokeObjectURL(url); b ? resolve(new File([b], (file.name || 'foto').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' })) : reject(new Error('no se pudo girar la foto')); }, 'image/jpeg', 0.9);
+      c.toBlob(b => { URL.revokeObjectURL(url); b ? resolve(new File([b], (file.name || 'foto').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg', lastModified: file.lastModified })) : reject(new Error('no se pudo girar la foto')); }, 'image/jpeg', 0.9);
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('no se pudo leer la foto')); };
     img.src = url;
@@ -2747,7 +2772,7 @@ async function asignarFotoACasillero(fotoId){
   const est = document.getElementById('fotOtEstado');
   // Vista previa: se puede girar la foto antes de ponerla en el casillero
   let archivo = null;
-  try{ const resp = await fetch(workerUrl(f.storage_path)); if(resp.ok){ const b = await resp.blob(); archivo = new File([b], (f.storage_path.split('/').pop() || 'foto.jpg'), { type: b.type || 'image/jpeg' }); } }catch(e){ console.warn('sin vista previa', e); }
+  try{ const resp = await fetch(workerUrl(f.storage_path)); if(resp.ok){ const b = await resp.blob(); const iso = fechaDeFoto(f); archivo = new File([b], (f.storage_path.split('/').pop() || 'foto.jpg'), { type: b.type || 'image/jpeg', lastModified: iso ? new Date(iso + 'T12:00:00').getTime() : Date.now() }); } }catch(e){ console.warn('sin vista previa', e); }
   let girada = false;
   if(archivo){
     const r = await previsualizarYGirar(archivo, dest.label);
