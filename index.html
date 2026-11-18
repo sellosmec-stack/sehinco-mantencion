@@ -909,6 +909,23 @@
     <p id="fotOtEstado" style="font-family:var(--mono);font-size:12.5px;"></p>
   </div>
 </div>
+<div id="movOv" class="po-overlay pc-overlay" hidden>
+  <div class="po-box" role="dialog" aria-modal="true" aria-labelledby="movTitulo">
+    <h3 id="movTitulo">Mover la foto</h3>
+    <p id="movAyuda">Toca el casillero al que quieres llevarla.</p>
+    <div id="movLista"></div>
+    <div class="po-botones"><button id="movCancelar">Cancelar</button></div>
+    <p id="movEstado" style="font-family:var(--mono);font-size:12.5px;"></p>
+  </div>
+</div>
+<div id="descOv" class="po-overlay" hidden>
+  <div class="po-box" role="dialog" aria-modal="true" aria-labelledby="descTitulo">
+    <h3 id="descTitulo">Cambiar la descripción</h3>
+    <p>Escribe cómo quieres que se llame esta foto en el informe.</p>
+    <input type="text" id="descInput" maxlength="120" autocomplete="off" style="width:100%;height:48px;border-radius:10px;border:1px solid var(--border-strong);padding:0 12px;font-size:16px;background:var(--surface);color:var(--text);">
+    <div class="po-botones"><button id="descCancelar">Cancelar</button><button id="descGuardar" class="primario">Guardar</button></div>
+  </div>
+</div>
 <div id="lightbox" class="lightbox" hidden>
   <button class="lb-x" id="lbCerrar" aria-label="Cerrar foto">✕</button>
   <div class="lb-zoom">
@@ -922,6 +939,8 @@
   <div class="lb-cap" id="lbCap"></div>
   <button class="lb-next" id="lbNext" aria-label="Foto siguiente">›</button>
   <div class="lb-acciones" id="lbAcciones" hidden>
+    <button id="lbMover">Mover a otro casillero</button>
+    <button id="lbDescripcion">Cambiar descripción</button>
     <button id="lbReemplazar">Reemplazar foto</button>
     <button id="lbEliminar" class="peligro">Quitar del casillero</button>
   </div>
@@ -1740,11 +1759,15 @@ function abrirFotoVer(k){ lbIndice = k; lbEditable = false; mostrarFotoVer(); do
 function mostrarFotoVer(){
   const f = verFotos[lbIndice]; if(!f) return;
   lbReset();   // cada foto se abre ajustada a la pantalla
-  // Solo las fotos que están en un casillero tienen acciones (Reemplazar / Quitar del casillero); las adicionales no se tocan
-  const tieneCasillero = lbEditable && !!slotDeFoto(f);
-  document.getElementById('lbAcciones').hidden = !tieneCasillero;
+  // Desde el formulario toda foto tiene acciones. En casillero: Mover / Reemplazar / Quitar. Adicional: Poner en un casillero / Cambiar descripción.
+  const slotFoto = lbEditable ? slotDeFoto(f) : null;
+  const tieneCasillero = !!slotFoto;
+  document.getElementById('lbAcciones').hidden = !lbEditable;
   document.getElementById('lbReemplazar').hidden = !tieneCasillero;
   document.getElementById('lbEliminar').hidden = !tieneCasillero;
+  document.getElementById('lbMover').hidden = !lbEditable;
+  document.getElementById('lbMover').textContent = tieneCasillero ? 'Mover a otro casillero' : 'Poner en un casillero';
+  document.getElementById('lbDescripcion').hidden = !(lbEditable && !tieneCasillero);
   document.getElementById('lbImg').src = workerUrl(f.storage_path);
   document.getElementById('lbCap').textContent = `${f.etiqueta || ''} (${lbIndice + 1} / ${verFotos.length})`.trim();
 }
@@ -2077,7 +2100,7 @@ async function printRecord(id){
   abrirOpcionesImpresion(_recImprimir);
 }
 // Cambia cada vez que se publica una versión nueva: sirve para comprobar que el tablet/navegador ya la está usando
-const APP_VERSION = '2026-11-17 · fotos adicionales con ícono';
+const APP_VERSION = '2026-11-18 · mover fotos y cambiar descripción';
 function abrirOpcionesImpresion(rec){
   document.getElementById('poVersion').textContent = 'Versión de la app: ' + APP_VERSION;
   const nFotos = (rec.fotos || []).length;
@@ -2843,6 +2866,96 @@ document.getElementById('lbEliminar').addEventListener('click', async () => {
   const f = verFotos[lbIndice]; if(!f) return;
   if(await quitarFotoDeCasillero(f.id)) cerrarFotoVer();
 });
+/* ---------- Mover una foto a otro casillero / cambiar la descripción de una adicional ----------
+   Las fotos nunca se borran: solo se vuelve a registrar cada una con su nuevo casillero (primero se registra lo nuevo y
+   después se quita el registro viejo; el archivo no se toca). Si el casillero de destino está ocupado: desde un casillero
+   las dos fotos se INTERCAMBIAN; desde las adicionales, la que estaba pasa a adicional. */
+let _movFotoId = null;
+function abrirMoverFoto(){
+  const f = verFotos[lbIndice]; if(!f || !window.editingId) return;
+  const slots = getFotoSlots(), src = slotDeFoto(f);
+  _movFotoId = f.id;
+  cerrarFotoVer();
+  document.getElementById('movTitulo').textContent = src ? `Mover «${src.label}»` : `Poner «${f.etiqueta || 'esta foto'}» en un casillero`;
+  document.getElementById('movAyuda').textContent = src ? 'Toca el casillero al que quieres llevarla. Si ya tiene foto, las dos se intercambian.' : 'Toca el casillero donde va. Si ya tiene foto, esa pasa a fotos adicionales.';
+  document.getElementById('movEstado').textContent = '';
+  document.getElementById('movLista').innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">${slots.map(sl => {
+    if(src && sl.key === src.key) return '';
+    const idx = slots.indexOf(sl), ocupante = currentFotos.find(x => x.id !== f.id && (x.orden === idx + 1 || x.etiqueta === sl.label));
+    const vista = ocupante ? `<img src="${workerUrl(ocupante.storage_path)}" alt="" loading="lazy">` : `<div style="height:80px;display:flex;align-items:center;justify-content:center;margin-bottom:3px;color:var(--text-faint);">${icon('camera')}</div>`;
+    return `<button type="button" class="fpc-celda" data-key="${escH(sl.key)}">${vista}<span><b>${escH(sl.label)}</b><br>${ocupante ? (src ? 'tiene foto: se intercambian' : 'tiene foto: pasa a adicional') : 'vacío'}</span></button>`;
+  }).join('')}</div>`;
+  document.querySelectorAll('#movLista .fpc-celda').forEach(b => b.addEventListener('click', () => moverFotoACasillero(_movFotoId, b.dataset.key)));
+  document.getElementById('movOv').hidden = false;
+}
+async function moverFotoACasillero(fotoId, destKey){
+  const f = (currentFotos || []).find(x => x.id === fotoId), slots = getFotoSlots();
+  const dIdx = slots.findIndex(s => s.key === destKey);
+  if(!f || dIdx < 0 || !window.editingId) return;
+  const dest = slots[dIdx], destOrden = dIdx + 1, src = slotDeFoto(f), srcOrden = src ? slots.findIndex(s => s.key === src.key) + 1 : 0;
+  const previa = currentFotos.find(x => x.id !== f.id && (x.orden === destOrden || x.etiqueta === dest.label));
+  const est = document.getElementById('movEstado'); est.textContent = 'Moviendo la foto…';
+  document.querySelectorAll('#movLista .fpc-celda').forEach(b => { b.disabled = true; });
+  const reg = (c) => api('/fotos', { method: 'POST', body: Object.assign({ ingreso_id: window.editingId }, c) });
+  const quitar = (id) => api('/fotos/' + id, { method: 'DELETE' });
+  try{
+    if(previa && src){
+      // Intercambio: las dos se registran en su nuevo lugar y recién después se quitan los registros viejos
+      const a = await reg({ storage_path: f.storage_path, etiqueta: dest.label, orden: destOrden }); if(a.error) throw a.error;
+      const b = await reg({ storage_path: previa.storage_path, etiqueta: src.label, orden: srcOrden }); if(b.error) throw b.error;
+      const d1 = await quitar(f.id); if(d1.error) throw d1.error;
+      const d2 = await quitar(previa.id); if(d2.error) throw d2.error;
+    }else{
+      if(previa) await pasarAAdicional(previa, `Quitada de «${dest.label}»`);
+      const a = await reg({ storage_path: f.storage_path, etiqueta: dest.label, orden: destOrden }); if(a.error) throw a.error;
+      const d1 = await quitar(f.id); if(d1.error) throw d1.error;
+    }
+    document.getElementById('movOv').hidden = true;
+    await refreshFotos(window.editingId);
+    showToast(previa && src ? 'Fotos intercambiadas ✓' : 'Foto movida a «' + dest.label + '» ✓');
+  }catch(e){
+    console.error(e);
+    est.textContent = 'No se pudo mover la foto: ' + (e.message || 'revisa tu conexión') + '. No se perdió ninguna foto.';
+    document.querySelectorAll('#movLista .fpc-celda').forEach(b => { b.disabled = false; });
+    await refreshFotos(window.editingId);
+  }
+}
+document.getElementById('movCancelar').addEventListener('click', () => { document.getElementById('movOv').hidden = true; });
+document.getElementById('lbMover').addEventListener('click', abrirMoverFoto);
+
+let _descFotoId = null;
+function abrirCambiarDescripcion(){
+  const f = verFotos[lbIndice]; if(!f || slotDeFoto(f)) return;
+  _descFotoId = f.id;
+  cerrarFotoVer();
+  const inp = document.getElementById('descInput'); inp.value = f.etiqueta || '';
+  document.getElementById('descOv').hidden = false;
+  setTimeout(() => { inp.focus(); inp.select(); }, 60);
+}
+async function guardarDescripcion(){
+  const f = (currentFotos || []).find(x => x.id === _descFotoId);
+  const nueva = document.getElementById('descInput').value.replace(/\s+/g, ' ').trim().slice(0, 120);
+  if(!f){ document.getElementById('descOv').hidden = true; return; }
+  if(!nueva){ showToast('Escribe una descripción', 'error'); return; }
+  if(nueva === f.etiqueta){ document.getElementById('descOv').hidden = true; return; }
+  if(getFotoSlots().some(s => s.label.toLowerCase() === nueva.toLowerCase())){
+    showToast(`«${nueva}» es el nombre de un casillero. Para ponerla ahí usa «Poner en un casillero».`, 'error'); return;
+  }
+  const btn = document.getElementById('descGuardar'); btn.disabled = true;
+  try{
+    const a = await api('/fotos', { method: 'POST', body: { ingreso_id: f.ingreso_id || window.editingId, storage_path: f.storage_path, etiqueta: nueva, orden: f.orden } }); if(a.error) throw a.error;
+    const d = await api('/fotos/' + f.id, { method: 'DELETE' }); if(d.error) throw d.error;
+    document.getElementById('descOv').hidden = true;
+    await refreshFotos(window.editingId);
+    showToast('Descripción cambiada ✓');
+  }catch(e){ console.error(e); showToast('No se pudo cambiar la descripción. Revisa tu conexión.', 'error'); await refreshFotos(window.editingId); }
+  finally{ btn.disabled = false; }
+}
+document.getElementById('lbDescripcion').addEventListener('click', abrirCambiarDescripcion);
+document.getElementById('descCancelar').addEventListener('click', () => { document.getElementById('descOv').hidden = true; });
+document.getElementById('descGuardar').addEventListener('click', guardarDescripcion);
+document.getElementById('descInput').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); guardarDescripcion(); } });
+
 document.getElementById('lbReemplazar').addEventListener('click', () => {
   const f = verFotos[lbIndice]; if(!f) return;
   const slot = slotDeFoto(f);
