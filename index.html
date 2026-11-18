@@ -1326,6 +1326,24 @@ async function abrirUltimaDeOt(filas){
   if(window.editingId !== filas[0].id) return;       // no se pudo cargar
   const b = document.getElementById('otAviso');
   const otras = filas.slice(1);
+  const hoy = new Date().toISOString().slice(0, 10);
+  if(String(filas[0].fecha || '').slice(0, 4) && String(filas[0].fecha).slice(0, 4) < hoy.slice(0, 4)){
+    // La última versión es de un AÑO ANTERIOR: se muestra todo su contenido como base para el informe de ahora,
+    // pero se guarda como informe NUEVO (el antiguo no se toca). Sin fotos, guía ni C.O.T. de aquel día y con los chequeos en blanco.
+    const idViejo = filas[0].id, fechaVieja = filas[0].fecha;
+    window.editingId = null;
+    document.getElementById('f_fecha').value = hoy;
+    document.getElementById('f_guia').value = ''; document.getElementById('f_cot').value = '';
+    state.checkIn.forEach(c => c.checked = false); state.checkOut.forEach(c => c.checked = false);
+    renderChecklist('checkIn', 'checkIn'); renderChecklist('checkOut', 'checkOut');
+    renderFotosList([]);
+    b.hidden = false;
+    b.innerHTML = `<div><b>📋 Datos del informe más reciente de la OT ${escH(ot)}</b> (${escH(fmtDate(fechaVieja))} · ${escH(filas[0].cliente || 'Sin cliente')}). Actualiza lo que haya cambiado y pulsa Guardar: se crea un informe <b>NUEVO</b> de hoy y el anterior queda intacto (lo ves en Registros).</div>` +
+      otras.map(r => `<div class="ot-v"><span class="t">También existe la del ${escH(fmtDate(r.fecha))} · ${escH(r.cliente || 'Sin cliente')}</span><button type="button" onclick="abrirVersionDeOt('${escH(r.id)}')">Abrir esa</button></div>`).join('') +
+      `<div class="ot-v"><span class="t">¿Quieres corregir el informe del ${escH(fmtDate(fechaVieja))} en vez de crear uno nuevo?</span><button type="button" onclick="abrirVersionDeOt('${escH(idViejo)}')">Abrir ese para editarlo</button></div>`;
+    showToast('OT ' + ot + ': datos del informe del ' + fmtDate(fechaVieja) + ' cargados como base');
+    return;
+  }
   b.hidden = false;
   b.innerHTML = `<div><b>📂 Se abrió la última versión de la OT ${escH(ot)}</b> (${escH(fmtDate(filas[0].fecha))} · ${escH(filas[0].cliente || 'Sin cliente')}). Sigue editándola y pulsa Guardar para actualizarla.</div>` +
     otras.map(r => `<div class="ot-v"><span class="t">También existe la del ${escH(fmtDate(r.fecha))} · ${escH(r.cliente || 'Sin cliente')}</span><button type="button" onclick="abrirVersionDeOt('${escH(r.id)}')">Abrir esa</button></div>`).join('') +
@@ -1389,7 +1407,8 @@ async function saveRecord(){
       let dupPath = '/ingresos?ot=' + encodeURIComponent(rec.ot);
       if(window.editingId) dupPath += '&exclude_id=' + encodeURIComponent(window.editingId);
       const { data: dup } = await api(dupPath);
-      if(dup && dup.length){
+      const dupMismoAnio = (dup || []).filter(d => !d.fecha || !rec.fecha || String(d.fecha).slice(0, 4) === String(rec.fecha).slice(0, 4));   // el mismo número en otro año es normal
+      if(dupMismoAnio.length){
         if(!confirm(`Ya existe otro registro con la OT ${rec.ot}. ¿Guardar de todas formas?`)){
           btn.disabled = false; label.textContent = textoOriginal;
           return;
@@ -1656,7 +1675,7 @@ function pintarBandaVersiones(){
   const b = document.getElementById('bandaVersiones');
   if(!otExacta){ b.hidden = true; b.innerHTML = ''; return; }
   b.hidden = false;
-  b.innerHTML = `<span style="flex:1 1 220px"><b>Todas las versiones de la OT ${escH(otExacta)}</b> (de todos los años)</span><button type="button" onclick="volverALaLista()">Volver a la lista</button>`;
+  b.innerHTML = `<span style="flex:1 1 220px"><b>Informes de la OT ${escH(otExacta)} de todos los años</b>: abre el del año que necesites</span><button type="button" onclick="volverALaLista()">Volver a la lista</button>`;
 }
 function verVersionesOt(ot){
   otExacta = String(ot || '').trim();
@@ -1683,7 +1702,7 @@ function pintarLista(){
         ${r.comps.map(c => `<span class="chip">${escH(c)}</span>`).join('') || '<span class="chip">Sin componentes</span>'}
         ${r.tecnico ? `<span class="chip">👤 ${escH(r.tecnico)}</span>` : ''}
         ${r.nFotos ? `<span class="chip">📷 ${r.nFotos}</span>` : ''}
-        ${(r.otrosAnios.length && !otExacta) ? `<button type="button" class="chip vers" onclick="event.stopPropagation(); verVersionesOt('${escH(r.ot)}')" title="Ver esta OT en otros años">📅 Otras versiones: ${escH(textoAnios(r.otrosAnios))}</button>` : ''}
+        ${(r.otrosAnios.length && !otExacta) ? `<button type="button" class="chip vers" onclick="event.stopPropagation(); verVersionesOt('${escH(r.ot)}')" title="Elegir el informe de otro año">📅 Ver otros años: ${escH(textoAnios(r.otrosAnios))}</button>` : ''}
       </div>
       <div class="rec-actions">
         <button class="btn-ver" onclick="event.stopPropagation(); verRecord('${escH(r.id)}')">Ver</button>
@@ -2127,7 +2146,7 @@ async function printRecord(id){
   abrirOpcionesImpresion(_recImprimir);
 }
 // Cambia cada vez que se publica una versión nueva: sirve para comprobar que el tablet/navegador ya la está usando
-const APP_VERSION = '2026-11-18 · botón Cancelar en Nuevo';
+const APP_VERSION = '2026-11-18 · OT de otro año como base';
 function abrirOpcionesImpresion(rec){
   document.getElementById('poVersion').textContent = 'Versión de la app: ' + APP_VERSION;
   const nFotos = (rec.fotos || []).length;
