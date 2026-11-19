@@ -735,6 +735,7 @@
         <input type="text" id="fotoEtiqueta" placeholder="Etiqueta (ej: DETALLE SELLO)">
         <button class="btn-mini" onclick="abrirFotoChoiceExtra()"><span class="mini-icon foto-ico"></span>Subir</button>
       </div>
+      <div class="add-item" style="margin-top:10px;"><button class="btn-mini" id="btnFotosOtraVersion" type="button" onclick="abrirFotosDeVersiones(false)"><span class="mini-icon foto-ico"></span>Traer fotos de otro año de esta OT</button></div>
       <div class="hint">Toca un casillero para elegir cámara o galería. Si aún no has guardado el registro, se crea automáticamente al subir la primera foto.</div>
     </div>
   </section>
@@ -920,6 +921,15 @@
     <div id="fotOtLista"></div>
     <div class="po-botones"><button id="fotOtCerrar">Cancelar</button></div>
     <p id="fotOtEstado" style="font-family:var(--mono);font-size:12.5px;"></p>
+  </div>
+</div>
+<div id="verFotOv" class="po-overlay pc-overlay" hidden>
+  <div class="po-box" role="dialog" aria-modal="true" aria-labelledby="verFotTitulo">
+    <h3 id="verFotTitulo">¿Qué fotos quieres usar?</h3>
+    <p id="verFotAyuda"></p>
+    <div id="verFotLista"></div>
+    <div class="po-botones"><button id="verFotCancelar" type="button">Ahora no</button></div>
+    <p id="verFotEstado" style="font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;"></p>
   </div>
 </div>
 <div id="movOv" class="po-overlay pc-overlay" hidden>
@@ -1322,7 +1332,7 @@ async function revisarOtRepetida(){
 }
 async function abrirUltimaDeOt(filas){
   const ot = filas[0].ot;
-  await editRecord(filas[0].id);
+  await editRecord(filas[0].id, { sinOferta: true });
   if(window.editingId !== filas[0].id) return;       // no se pudo cargar
   const b = document.getElementById('otAviso');
   const otras = filas.slice(1);
@@ -1342,6 +1352,7 @@ async function abrirUltimaDeOt(filas){
       otras.map(r => `<div class="ot-v"><span class="t">También existe la del ${escH(fmtDate(r.fecha))} · ${escH(r.cliente || 'Sin cliente')}</span><button type="button" onclick="abrirVersionDeOt('${escH(r.id)}')">Abrir esa</button></div>`).join('') +
       `<div class="ot-v"><span class="t">¿Quieres corregir el informe del ${escH(fmtDate(fechaVieja))} en vez de crear uno nuevo?</span><button type="button" onclick="abrirVersionDeOt('${escH(idViejo)}')">Abrir ese para editarlo</button></div>`;
     showToast('OT ' + ot + ': datos del informe del ' + fmtDate(fechaVieja) + ' cargados como base');
+    ofrecerFotosDeVersiones();
     return;
   }
   b.hidden = false;
@@ -1931,7 +1942,7 @@ document.addEventListener('keydown', e => {
   }
 });
 
-async function editRecord(id){
+async function editRecord(id, opc){
   const { data, error } = await api('/ingresos/' + id + '?join=full');
   if(error){ console.error(error); showToast('No se pudo cargar el registro', 'error'); return; }
   const rec = mapFromSupabase(data);
@@ -1990,6 +2001,8 @@ async function editRecord(id){
   renderFotosList(rec.fotos || []);
   switchView('form');
   document.getElementById('sec-datos').scrollIntoView({block:'start'});
+  // Informe de un año anterior: se ofrece usar las fotos de otro año de la misma OT
+  if(!(opc && opc.sinOferta) && String(rec.fecha || '').slice(0, 4) && String(rec.fecha).slice(0, 4) < String(new Date().getFullYear())) ofrecerFotosDeVersiones();
 }
 
 async function deleteRecord(id){
@@ -2146,7 +2159,7 @@ async function printRecord(id){
   abrirOpcionesImpresion(_recImprimir);
 }
 // Cambia cada vez que se publica una versión nueva: sirve para comprobar que el tablet/navegador ya la está usando
-const APP_VERSION = '2026-11-18 · OT de otro año como base';
+const APP_VERSION = '2026-11-19 · fotos de otro año de la OT';
 function abrirOpcionesImpresion(rec){
   document.getElementById('poVersion').textContent = 'Versión de la app: ' + APP_VERSION;
   const nFotos = (rec.fotos || []).length;
@@ -2683,8 +2696,10 @@ async function ensureIngresoId(){
     // subir/reemplazar una foto de un registro que ya se había guardado antes).
     try{
       const { data: existente } = await api('/ingresos?ot=' + encodeURIComponent(ot));
-      if(existente && existente.length){
-        window.editingId = existente[0].id;
+      const anioForm = fechaOtForm().slice(0, 4);
+      const mismoAnio = (existente || []).filter(r => !anioForm || !r.fecha || String(r.fecha).slice(0, 4) === anioForm);   // el mismo número de otro año es OTRO informe
+      if(mismoAnio.length){
+        window.editingId = mismoAnio[0].id;
         return window.editingId;
       }
     }catch(e){ console.error(e); }
@@ -2721,6 +2736,127 @@ function htmlFechaFoto(f, fechaOt, conSinFecha){
   if(!iso) return conSinFecha ? '<span class="ffecha">📅 sin fecha</span>' : '';
   const antes = !!fechaOt && iso < fechaOt;
   return `<span class="ffecha${antes ? ' antes' : ''}">📅 ${iso.split('-').reverse().join('-')}${antes ? ' · anterior a la OT' : ''}</span>`;
+}
+
+
+/* ============================================================
+   FOTOS DE OTRO AÑO DE LA MISMA OT
+   Al actualizar un informe de un año anterior se puede elegir con qué fotos trabajar: las de la versión más reciente o las
+   del año del informe. Las fotos elegidas se COPIAN (archivo nuevo) al informe actual y se ordenan solas en sus casilleros
+   según el casillero que tenían o, si eran adicionales, según su descripción. Nada se quita de la versión de origen.
+   ============================================================ */
+const _normTxt = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+// Casillero (0-11) que corresponde a una descripción; -1 si no se reconoce
+function casilleroPorDescripcion(et){
+  const n = _normTxt(et);
+  if(!n.trim() || /FOTO ADICIONAL|^IMG|^DSC|^PXL/.test(n.trim())) return -1;
+  if(/PLACA/.test(n)) return 10;
+  if(/GRABAD/.test(n)) return 11;
+  const lado = /\bANTES\b/.test(n) ? 0 : (/\bDESPUES\b/.test(n) ? 1 : -1);
+  if(lado < 0) return -1;
+  const base = /CAJA/.test(n) ? 2 : /\bEJE\b|ROTOR/.test(n) ? 4 : /BOBINAD/.test(n) ? 6 : /TAPA/.test(n) ? 8 : 0;
+  return base + lado;
+}
+// Reparte las fotos de origen: primero las que ya venían en un casillero, luego las adicionales según su descripción
+function planFotosACopiar(fotosOrigen, fotosDestino){
+  const slots = getFotoSlots();
+  const ocupado = new Array(slots.length).fill(false);
+  (fotosDestino || []).forEach(f => { const i = slots.findIndex((s, k) => f.orden === k + 1 || f.etiqueta === s.label); if(i >= 0) ocupado[i] = true; });
+  const plan = [], resto = [];
+  const ordenadas = (fotosOrigen || []).slice().sort((a, b) => (a.orden || 0) - (b.orden || 0));
+  ordenadas.forEach(f => {
+    const i = slots.findIndex((s, k) => f.orden === k + 1 || f.etiqueta === s.label);
+    if(i >= 0 && !ocupado[i]){ ocupado[i] = true; plan.push({ f, slot: i, etiqueta: slots[i].label, como: 'casillero' }); }
+    else resto.push(f);
+  });
+  resto.forEach(f => {
+    const i = casilleroPorDescripcion(f.etiqueta);
+    if(i >= 0 && !ocupado[i]){ ocupado[i] = true; plan.push({ f, slot: i, etiqueta: slots[i].label, como: 'descripcion' }); }
+    else plan.push({ f, slot: -1, etiqueta: slots.some(sl => sl.label === f.etiqueta) ? f.etiqueta + ' (otro año)' : (f.etiqueta || 'Sin etiqueta'), como: 'adicional' });   // con el nombre de un casillero se confundiría con él
+  });
+  return plan;
+}
+let _verFotAuto = 0, _fotosVersiones = [];
+async function ofrecerFotosDeVersiones(){ return abrirFotosDeVersiones(true); }
+async function abrirFotosDeVersiones(auto){
+  const ot = document.getElementById('f_ot').value.trim();
+  if(!ot){ if(!auto) showToast('Escribe primero el número de OT', 'error'); return; }
+  const mia = ++_verFotAuto;
+  const { data, error } = await api('/ingresos?ot=' + encodeURIComponent(ot));
+  if(error || !data){ if(!auto) showToast('No se pudo consultar las versiones de esta OT', 'error'); return; }
+  const otras = data.filter(r => r.id !== window.editingId).sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')));
+  const conFotos = [];
+  await Promise.all(otras.map(async r => { const x = await api('/fotos?ingreso_id=' + encodeURIComponent(r.id)); if(Array.isArray(x.data) && x.data.length) conFotos.push({ r, fotos: x.data }); }));
+  if(mia !== _verFotAuto) return;                     // llegó otra consulta más nueva
+  conFotos.sort((a, b) => String(b.r.fecha || '').localeCompare(String(a.r.fecha || '')));
+  if(!conFotos.length){ if(!auto) showToast('Ninguna otra versión de esta OT tiene fotos', 'error'); return; }
+  const miFecha = fechaOtForm();
+  // Aviso automático: solo si el informe aún no tiene fotos o existe una versión más nueva con fotos
+  if(auto && (currentFotos || []).length && !conFotos.some(c => String(c.r.fecha || '') > miFecha)) return;
+  _fotosVersiones = conFotos;
+  document.getElementById('verFotAyuda').textContent = auto
+    ? `Estás actualizando un informe del ${fmtDate(miFecha)}. Elige de qué año quieres traer las fotos; se acomodan solas en su casillero según su descripción.`
+    : 'Elige de qué año quieres traer las fotos a este informe; se acomodan solas en su casillero según su descripción.';
+  document.getElementById('verFotEstado').textContent = '';
+  document.getElementById('verFotLista').innerHTML = conFotos.map((c, i) => {
+    const etiqueta = i === 0 ? 'la más reciente' : ((c.r.fecha || '').slice(0, 4) === miFecha.slice(0, 4) ? 'del año de este informe' : '');
+    return `<button type="button" class="btn-mini" data-i="${i}" style="display:block;width:100%;margin:6px 0;text-align:left;padding:10px 12px;">📷 Fotos del ${escH(fmtDate(c.r.fecha))} · ${c.fotos.length} foto(s)${etiqueta ? ' — <b>' + etiqueta + '</b>' : ''}<br><small>${escH(c.r.cliente || 'Sin cliente')}</small></button>`;
+  }).join('');
+  document.querySelectorAll('#verFotLista button').forEach(b => b.addEventListener('click', () => copiarFotosDeVersion(+b.dataset.i)));
+  document.getElementById('verFotOv').hidden = false;
+}
+document.getElementById('verFotCancelar').addEventListener('click', () => { document.getElementById('verFotOv').hidden = true; });
+async function copiarFotosDeVersion(i){
+  const origen = _fotosVersiones[i]; if(!origen) return;
+  const est = document.getElementById('verFotEstado');
+  const botones = [...document.querySelectorAll('#verFotLista button, #verFotCancelar')];
+  botones.forEach(b => b.disabled = true);
+  try{
+    if(!window.editingId){
+      if(!validarFormulario()){ document.getElementById('verFotOv').hidden = true; return; }
+      est.textContent = 'Guardando el informe nuevo para poder agregarle las fotos…';
+      await saveRecord();
+      if(!window.editingId) throw new Error('no se pudo guardar el informe');
+    }
+    const id = window.editingId;
+    const { data: actuales } = await api('/fotos?ingreso_id=' + encodeURIComponent(id));
+    currentFotos = actuales || [];
+    const plan = planFotosACopiar(origen.fotos, currentFotos);
+    const slots = getFotoSlots();
+    let siguiente = Math.max(slots.length + 1, ...currentFotos.map(f => (f.orden || 0) + 1));
+    const ot = document.getElementById('f_ot').value.trim();
+    const carpeta = carpetaIngreso(id);
+    let ok = 0; const fallos = [];
+    let k = 0;
+    const trabajar = async () => {
+      while(k < plan.length){
+        const it = plan[k++], f = it.f;
+        const orden = it.slot >= 0 ? it.slot + 1 : siguiente++;
+        try{
+          const resp = await fetch(workerUrl(f.storage_path)); if(!resp.ok) throw new Error('HTTP ' + resp.status);
+          const blob = await resp.blob();
+          const m = String(f.storage_path).match(/(_F\d{8})?\.([a-z0-9]+)$/i);
+          const path = `${carpeta}/${orden}_${sanitizarNombre(it.etiqueta)}_OT${sanitizarNombre(ot)}${(m && m[1]) || ''}.${((m && m[2]) || 'jpg').toLowerCase()}`;
+          await subirFotoAWorker(path, blob, blob.type || 'image/jpeg');
+          const r = await api('/fotos', { method: 'POST', body: { ingreso_id: id, storage_path: path, etiqueta: it.etiqueta, orden } });
+          if(r.error) throw r.error;
+          ok++;
+        }catch(e){ console.error(e); fallos.push(f.etiqueta || 'foto'); }
+        est.textContent = `Copiando fotos… ${ok + fallos.length}/${plan.length}`;
+      }
+    };
+    await Promise.all([trabajar(), trabajar(), trabajar()]);
+    await refreshFotos(id);
+    const enCasillero = plan.filter(x => x.slot >= 0).length, porDesc = plan.filter(x => x.como === 'descripcion').length, adic = plan.length - enCasillero;
+    document.getElementById('verFotOv').hidden = true;
+    showToast(`${ok} foto(s) traídas: ${enCasillero} en su casillero${porDesc ? ' (' + porDesc + ' ubicadas por su descripción)' : ''}, ${adic} adicionales` + (fallos.length ? `. ${fallos.length} fallaron` : ''), fallos.length ? 'error' : undefined);
+    document.getElementById('sec-fotos').scrollIntoView({ block: 'start' });
+  }catch(e){
+    console.error(e);
+    est.textContent = 'No se pudo copiar: ' + (e.message || 'revisa tu conexión');
+  }finally{
+    botones.forEach(b => b.disabled = false);
+  }
 }
 
 function carpetaIngreso(ingresoId){
