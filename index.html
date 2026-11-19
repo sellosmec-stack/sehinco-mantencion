@@ -735,7 +735,7 @@
         <input type="text" id="fotoEtiqueta" placeholder="Etiqueta (ej: DETALLE SELLO)">
         <button class="btn-mini" onclick="abrirFotoChoiceExtra()"><span class="mini-icon foto-ico"></span>Subir</button>
       </div>
-      <div class="add-item" style="margin-top:10px;"><button class="btn-mini" id="btnFotosOtraVersion" type="button" onclick="abrirFotosDeVersiones(false)"><span class="mini-icon foto-ico"></span>Traer fotos de otro año de esta OT</button></div>
+      <div class="add-item" style="margin-top:10px;"><button class="btn-mini" id="btnFotosOtraVersion" type="button" onclick="abrirFotosDeVersiones(false)"><span class="mini-icon foto-ico"></span>Traer fotos de otro año de esta OT</button> <button class="btn-mini" id="btnLimpiarFotos" type="button" onclick="limpiarFotosViejas()">Dejar solo las fotos de este año</button></div>
       <div class="hint">Toca un casillero para elegir cámara o galería. Si aún no has guardado el registro, se crea automáticamente al subir la primera foto.</div>
     </div>
   </section>
@@ -928,6 +928,7 @@
     <h3 id="verFotTitulo">¿Qué fotos quieres usar?</h3>
     <p id="verFotAyuda"></p>
     <div id="verFotLista"></div>
+    <label style="display:flex;gap:8px;align-items:center;margin:10px 0 4px;cursor:pointer;font-size:13.5px;"><input type="checkbox" id="verFotSoloAnio" checked> <span>Traer <b>solo las fotos de este año</b> (<span id="verFotAnioTxt"></span>), no las de años anteriores</span></label>
     <div class="po-botones"><button id="verFotCancelar" type="button">Ahora no</button></div>
     <p id="verFotEstado" style="font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;"></p>
   </div>
@@ -1341,7 +1342,7 @@ async function abrirUltimaDeOt(filas){
     // La última versión es de un AÑO ANTERIOR: se muestra todo su contenido como base para el informe de ahora,
     // pero se guarda como informe NUEVO (el antiguo no se toca). Sin fotos, guía ni C.O.T. de aquel día y con los chequeos en blanco.
     const idViejo = filas[0].id, fechaVieja = filas[0].fecha;
-    window.editingId = null;
+    window.editingId = null; _fechaCargada = '';
     document.getElementById('f_fecha').value = hoy;
     document.getElementById('f_guia').value = ''; document.getElementById('f_cot').value = '';
     state.checkIn.forEach(c => c.checked = false); state.checkOut.forEach(c => c.checked = false);
@@ -1397,8 +1398,20 @@ async function copiarDatosDeOt(id){
   showToast('Datos copiados de la OT del ' + fmtDate(rec.fecha) + '. Revísalos y completa el trabajo.');
 }
 
+let _fechaCargada = '';   // fecha del informe tal como se abrió para editar (para detectar que se está actualizando uno antiguo)
 async function saveRecord(){
   if(!validarFormulario()) return;
+  let creoNueva = false;
+  if(window.editingId && _fechaCargada){
+    const nueva = (document.getElementById('f_fecha').value || '').slice(0, 10);
+    if(nueva && nueva > _fechaCargada){
+      // Le pusieron una fecha más nueva a un informe ya guardado: casi siempre es una actualización, y no debe pisar el antiguo
+      if(confirm(`Cambiaste la fecha de este informe (${fmtDate(_fechaCargada)} → ${fmtDate(nueva)}).\n\n¿Guardarlo como un informe NUEVO y dejar intacto el del ${fmtDate(_fechaCargada)}?\n\nAceptar = informe NUEVO (recomendado)\nCancelar = ver otras opciones`)){
+        window.editingId = null; _fechaCargada = ''; creoNueva = true; renderFotosList([]);   // las fotos del informe antiguo no pasan al nuevo
+        ocultarAvisoOt();
+      }else if(!confirm(`¿Entonces REEMPLAZAR el informe del ${fmtDate(_fechaCargada)} (sus datos y su fecha) por esta versión?\n\nAceptar = reemplazar el informe antiguo\nCancelar = no guardar todavía`)) return;
+    }
+  }
   const btn = document.getElementById('btnSave');
   const label = document.getElementById('btnSaveLabel');
   const textoOriginal = label.textContent;
@@ -1448,8 +1461,10 @@ async function saveRecord(){
     window.editingId = ingresoId;
     ocultarAvisoOt();
     await refreshFotos(ingresoId);
-    showToast('Registro guardado ✓');
+    _fechaCargada = (rec.fecha || '').slice(0, 10);
+    showToast(creoNueva ? 'Informe NUEVO guardado ✓ (el anterior quedó intacto)' : 'Registro guardado ✓');
     await refreshCount();
+    if(creoNueva) ofrecerFotosDeVersiones();
   }catch(e){
     console.error(e);
     showToast('Error al guardar: ' + (e.message || 'revisa tu conexión e inténtalo de nuevo'), 'error');
@@ -1472,7 +1487,7 @@ document.getElementById('btnCancelar').addEventListener('click', () => {
 });
 
 function resetForm(){
-  window.editingId = null; ocultarAvisoOt(); _otSuprimida = '';
+  window.editingId = null; _fechaCargada = ''; ocultarAvisoOt(); _otSuprimida = '';
   renderFotosList([]);
   document.getElementById('f_ot').value='';
   document.getElementById('f_cot').value='';
@@ -1946,7 +1961,7 @@ async function editRecord(id, opc){
   const { data, error } = await api('/ingresos/' + id + '?join=full');
   if(error){ console.error(error); showToast('No se pudo cargar el registro', 'error'); return; }
   const rec = mapFromSupabase(data);
-  window.editingId = rec.id; ocultarAvisoOt();
+  window.editingId = rec.id; ocultarAvisoOt(); _fechaCargada = (rec.fecha || '').slice(0, 10);
   document.getElementById('f_ot').value = rec.ot||'';
   document.getElementById('f_cot').value = rec.cot||'';
   document.getElementById('f_codigo').value = rec.codigoEquipo||'';
@@ -2159,7 +2174,7 @@ async function printRecord(id){
   abrirOpcionesImpresion(_recImprimir);
 }
 // Cambia cada vez que se publica una versión nueva: sirve para comprobar que el tablet/navegador ya la está usando
-const APP_VERSION = '2026-11-19 · fotos de otro año de la OT';
+const APP_VERSION = '2026-11-19 · actualizar sin pisar el informe antiguo';
 function abrirOpcionesImpresion(rec){
   document.getElementById('poVersion').textContent = 'Versión de la app: ' + APP_VERSION;
   const nFotos = (rec.fotos || []).length;
@@ -2795,9 +2810,11 @@ async function abrirFotosDeVersiones(auto){
   if(auto && (currentFotos || []).length && !conFotos.some(c => String(c.r.fecha || '') > miFecha)) return;
   _fotosVersiones = conFotos;
   document.getElementById('verFotAyuda').textContent = auto
-    ? `Estás actualizando un informe del ${fmtDate(miFecha)}. Elige de qué año quieres traer las fotos; se acomodan solas en su casillero según su descripción.`
-    : 'Elige de qué año quieres traer las fotos a este informe; se acomodan solas en su casillero según su descripción.';
+    ? `Estás actualizando un informe del ${fmtDate(miFecha)}. Elige de qué año quieres traer las fotos: se acomodan solas en su casillero según su descripción. Las fotos adicionales no se traen.`
+    : 'Elige de qué año quieres traer las fotos a este informe: se acomodan solas en su casillero según su descripción. Las fotos adicionales no se traen.';
   document.getElementById('verFotEstado').textContent = '';
+  document.getElementById('verFotAnioTxt').textContent = String(new Date().getFullYear());
+  document.getElementById('verFotSoloAnio').checked = true;
   document.getElementById('verFotLista').innerHTML = conFotos.map((c, i) => {
     const etiqueta = i === 0 ? 'la más reciente' : ((c.r.fecha || '').slice(0, 4) === miFecha.slice(0, 4) ? 'del año de este informe' : '');
     return `<button type="button" class="btn-mini" data-i="${i}" style="display:block;width:100%;margin:6px 0;text-align:left;padding:10px 12px;">📷 Fotos del ${escH(fmtDate(c.r.fecha))} · ${c.fotos.length} foto(s)${etiqueta ? ' — <b>' + etiqueta + '</b>' : ''}<br><small>${escH(c.r.cliente || 'Sin cliente')}</small></button>`;
@@ -2806,8 +2823,44 @@ async function abrirFotosDeVersiones(auto){
   document.getElementById('verFotOv').hidden = false;
 }
 document.getElementById('verFotCancelar').addEventListener('click', () => { document.getElementById('verFotOv').hidden = true; });
+let _copiandoFotos = false;
+const _kCopias = 'sehinco_fotos_copiadas';   // por informe: de qué fotos ya se copiaron (para no traerlas dos veces)
+const leerCopias = () => { try{ return JSON.parse(localStorage.getItem(_kCopias) || '{}') || {}; }catch(e){ return {}; } };
+const guardarCopias = (m) => { try{ localStorage.setItem(_kCopias, JSON.stringify(m)); }catch(e){} };
+const anioDeFoto = (f) => { const d = fechaDeFoto(f); return d ? +d.slice(0, 4) : null; };
+// Una foto repetida se reconoce por su fecha de archivo + su descripción (si la descripción es la genérica no se puede asegurar)
+const claveFotoRepetida = (f) => { const d = fechaDeFoto(f), e = _normTxt(f.etiqueta).trim(); return (d && e && e !== 'FOTO ADICIONAL') ? d + '|' + e : ''; };
+
+// Quita del informe las fotos de años anteriores (por la fecha del archivo) y las repetidas. Solo quita el registro: no hay archivos que se pierdan de las otras versiones.
+async function limpiarFotosViejas(){
+  if(!window.editingId){ showToast('Primero guarda el informe', 'error'); return; }
+  const id = window.editingId;
+  await refreshFotos(id);
+  const fotos = (currentFotos || []).slice();
+  const anioInforme = +(fechaOtForm() || '').slice(0, 4) || new Date().getFullYear();
+  const viejas = fotos.filter(f => { const a = anioDeFoto(f); return a != null && a < anioInforme; });
+  const idsViejas = new Set(viejas.map(f => f.id));
+  const vistos = new Set(); const repetidas = [];
+  fotos.slice().sort((a, b) => (a.orden || 0) - (b.orden || 0)).forEach(f => {
+    if(idsViejas.has(f.id)) return;
+    const k = claveFotoRepetida(f); if(!k) return;
+    if(vistos.has(k)) repetidas.push(f); else vistos.add(k);
+  });
+  const quitar = [...viejas, ...repetidas];
+  if(!quitar.length){ showToast('No hay fotos de años anteriores ni repetidas para quitar'); return; }
+  if(!confirm(`Se van a QUITAR de este informe ${quitar.length} foto(s):\n• ${viejas.length} con fecha de un año anterior a ${anioInforme}\n• ${repetidas.length} repetida(s) (misma fecha y misma descripción)\n\nLas fotos sin fecha no se tocan. Las otras versiones de la OT no cambian.\n\n¿Continuar?`)) return;
+  let ok = 0;
+  for(const f of quitar){
+    const r = await api('/fotos/' + encodeURIComponent(f.id), { method: 'DELETE' });
+    if(!r.error) ok++;
+  }
+  await refreshFotos(id);
+  showToast(ok === quitar.length ? `${ok} foto(s) quitadas del informe` : `${ok} de ${quitar.length} fotos quitadas; revisa tu conexión`, ok === quitar.length ? undefined : 'error');
+}
 async function copiarFotosDeVersion(i){
   const origen = _fotosVersiones[i]; if(!origen) return;
+  if(_copiandoFotos) return;               // ya hay una copia en marcha: un segundo toque no la repite
+  _copiandoFotos = true;
   const est = document.getElementById('verFotEstado');
   const botones = [...document.querySelectorAll('#verFotLista button, #verFotCancelar')];
   botones.forEach(b => b.disabled = true);
@@ -2821,7 +2874,23 @@ async function copiarFotosDeVersion(i){
     const id = window.editingId;
     const { data: actuales } = await api('/fotos?ingreso_id=' + encodeURIComponent(id));
     currentFotos = actuales || [];
-    const plan = planFotosACopiar(origen.fotos, currentFotos);
+    // Filtros: solo las de este año (por la fecha del archivo) y nada que ya se haya traído antes
+    let fuente = origen.fotos, omitidasAnio = 0, yaEstaban = 0;
+    const anioAct = new Date().getFullYear(), anioVersion = +String(origen.r.fecha || '').slice(0, 4);
+    if(document.getElementById('verFotSoloAnio').checked){
+      fuente = fuente.filter(f => { const a = anioDeFoto(f); const bien = a != null ? a === anioAct : anioVersion === anioAct; if(!bien) omitidasAnio++; return bien; });
+    }
+    const copias = leerCopias(), yaCopiadas = new Set(copias[id] || []);
+    const clavesDestino = new Set(currentFotos.map(claveFotoRepetida).filter(Boolean));
+    fuente = fuente.filter(f => { const k = claveFotoRepetida(f); if(yaCopiadas.has(f.storage_path) || (k && clavesDestino.has(k))){ yaEstaban++; return false; } return true; });
+    // Solo se traen las que caen en un casillero; las adicionales (sin casillero) NO se suben al informe
+    const planTodo = planFotosACopiar(fuente, currentFotos);
+    const plan = planTodo.filter(x => x.slot >= 0), adicionalesNoTraidas = planTodo.length - plan.length;
+    if(!plan.length){
+      document.getElementById('verFotOv').hidden = true;
+      showToast('No hay fotos nuevas para traer' + (adicionalesNoTraidas ? ` (${adicionalesNoTraidas} adicionales no se traen)` : '') + (yaEstaban ? ` (${yaEstaban} ya estaban en el informe)` : '') + (omitidasAnio ? ` (${omitidasAnio} son de años anteriores)` : ''));
+      return;
+    }
     const slots = getFotoSlots();
     let siguiente = Math.max(slots.length + 1, ...currentFotos.map(f => (f.orden || 0) + 1));
     const ot = document.getElementById('f_ot').value.trim();
@@ -2840,21 +2909,23 @@ async function copiarFotosDeVersion(i){
           await subirFotoAWorker(path, blob, blob.type || 'image/jpeg');
           const r = await api('/fotos', { method: 'POST', body: { ingreso_id: id, storage_path: path, etiqueta: it.etiqueta, orden } });
           if(r.error) throw r.error;
-          ok++;
+          ok++; yaCopiadas.add(f.storage_path);
         }catch(e){ console.error(e); fallos.push(f.etiqueta || 'foto'); }
         est.textContent = `Copiando fotos… ${ok + fallos.length}/${plan.length}`;
       }
     };
     await Promise.all([trabajar(), trabajar(), trabajar()]);
+    copias[id] = [...yaCopiadas]; guardarCopias(copias);
     await refreshFotos(id);
-    const enCasillero = plan.filter(x => x.slot >= 0).length, porDesc = plan.filter(x => x.como === 'descripcion').length, adic = plan.length - enCasillero;
+    const enCasillero = plan.length, porDesc = plan.filter(x => x.como === 'descripcion').length;
     document.getElementById('verFotOv').hidden = true;
-    showToast(`${ok} foto(s) traídas: ${enCasillero} en su casillero${porDesc ? ' (' + porDesc + ' ubicadas por su descripción)' : ''}, ${adic} adicionales` + (fallos.length ? `. ${fallos.length} fallaron` : ''), fallos.length ? 'error' : undefined);
+    showToast(`${ok} foto(s) traídas a su casillero: ${enCasillero}${porDesc ? ' (' + porDesc + ' ubicadas por su descripción)' : ''}` + (adicionalesNoTraidas ? `. ${adicionalesNoTraidas} adicionales no se traen` : '') + (yaEstaban ? `. ${yaEstaban} ya estaban` : '') + (omitidasAnio ? `. ${omitidasAnio} omitidas por ser de años anteriores` : '') + (fallos.length ? `. ${fallos.length} fallaron` : ''), fallos.length ? 'error' : undefined);
     document.getElementById('sec-fotos').scrollIntoView({ block: 'start' });
   }catch(e){
     console.error(e);
     est.textContent = 'No se pudo copiar: ' + (e.message || 'revisa tu conexión');
   }finally{
+    _copiandoFotos = false;
     botones.forEach(b => b.disabled = false);
   }
 }
