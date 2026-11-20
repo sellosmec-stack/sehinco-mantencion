@@ -2306,7 +2306,7 @@ document.getElementById('btnExport').addEventListener('click', exportCSV);
    - todas sus fotos, con su descripción en el nombre ("1. MOTOR ANTES.jpg")
    El PDF se arma fotografiando las hojas (html2canvas + jsPDF, que se bajan de internet solo al usarlo).
    ============================================================ */
-const PC = { raiz: null, nuevas: [], clientes: new Map(), ocupado: false };
+const PC = { raiz: null, nuevas: [], clientes: new Map(), alias: new Map(), ocupado: false };   // alias: nombre de cliente de la app (clave) -> carpeta de cliente del PC (p. ej. EMBOTELLADORA CHILENAS UNIDAS -> ECUSA)
 const PC_RE_OT = /^(?:OT[_\s-]?(\d{4,7})|(\d{5,7}))(?!\d)/i;
 const PC_ALTO_HOJA = 995, PC_ANCHO_HOJA = 755;      // área útil de una hoja CARTA con márgenes de 8 mm, en px
 function pcClave(s){
@@ -2393,11 +2393,33 @@ async function pcTienePdf(dir){
 // Carpeta de cliente que corresponde a un nombre: igual (sin tildes/puntos/S.A.) o, si hay una sola, que lo contenga
 function pcCarpetaDeCliente(nombreCliente){
   const k = pcClave(nombreCliente); if(!k) return null;
+  const aprendida = PC.alias.get(k);                       // el mismo cliente con otro nombre (la app dice «EMBOTELLADORA CHILENAS UNIDAS» y la carpeta es «ECUSA»)
+  if(aprendida && PC.clientes.has(aprendida)) return PC.clientes.get(aprendida);
   const todas = [...PC.clientes.values()];
   const exactas = todas.filter(c => c.clave === k);
   if(exactas.length) return exactas[0];
   const parecidas = todas.filter(c => c.clave.length >= 3 && k.length >= 3 && (c.clave.includes(k) || k.includes(c.clave)));
   return parecidas.length === 1 ? parecidas[0] : null;
+}
+// Aprende qué carpeta de cliente del PC corresponde a cada nombre de cliente de la app mirando las OT que YA están guardadas:
+// si las OT 25827 y 25901 están dentro de «ECUSA» y en la app su cliente es «EMBOTELLADORA CHILENAS UNIDAS», entonces ese nombre es «ECUSA».
+// Hace falta que al menos 2 OT coincidan y que una sola carpeta reúna más de la mitad, para no confundirse con un número de OT repetido.
+function pcAprenderAlias(filas, carpetas){
+  const cuenta = new Map();   // clave del nombre en la app -> Map(carpeta de cliente -> cantidad de OT)
+  const vistos = new Set();
+  (filas || []).forEach(r => {
+    const k = pcClave(r.cliente); if(!k) return;
+    const cs = carpetas.get(String(r.ot)); if(!cs || cs.length !== 1 || !cs[0].cliente) return;   // solo si el número tiene UNA carpeta y está dentro de una carpeta de cliente
+    const unico = k + '|' + r.ot; if(vistos.has(unico)) return; vistos.add(unico);
+    if(!cuenta.has(k)) cuenta.set(k, new Map());
+    const m = cuenta.get(k); m.set(cs[0].cliente, (m.get(cs[0].cliente) || 0) + 1);
+  });
+  PC.alias = new Map();
+  cuenta.forEach((m, k) => {
+    let mejor = null, n = 0, total = 0;
+    m.forEach((c, nombre) => { total += c; if(c > n){ n = c; mejor = nombre; } });
+    if(mejor && n >= 2 && n > total / 2 && pcClave(mejor) !== k) PC.alias.set(k, mejor);
+  });
 }
 async function pcBuscar(){
   if(PC.ocupado) return;
@@ -2414,6 +2436,7 @@ async function pcBuscar(){
     // ya guardada cubre a los registros más antiguos y solo se ofrecen los que sobran: nunca se pisa una carpeta existente.
     const porOt = new Map();
     (data || []).forEach(r => { if(!r.fecha || (anio && r.fecha.slice(0, 4) !== anio)) return; const k = String(r.ot); if(!porOt.has(k)) porOt.set(k, []); porOt.get(k).push(r); });
+    pcAprenderAlias([...porOt.values()].flat(), carpetas);
     PC.nuevas = []; const candidatasSinPdf = [];
     porOt.forEach((rows, ot) => {
       rows.sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || String(a.id).localeCompare(String(b.id)));
