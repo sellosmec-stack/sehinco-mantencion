@@ -1492,9 +1492,43 @@ async function saveRecord(opciones){
   }
 }
 document.getElementById('btnSave').addEventListener('click', saveRecord);
-// «Crear informe»: guarda la OT como terminada y abre las opciones del informe (imprimir o guardar como PDF)
+// «Crear informe»: guarda la OT como terminada. En el PC del administrador deja además el PDF en la carpeta de la OT.
+// No abre la ventana de imprimir (para imprimir está el botón «Imprimir» de Registros).
+let PC_ESPERA_PERMISO_MS = 20000;
+let _creandoInforme = false;
 async function crearInforme(){
-  if(await saveRecord({ informe: true }) === 'informe') await printRecord(window.editingId);
+  if(_creandoInforme || !validarFormulario()) return;
+  _creandoInforme = true;
+  const boton = document.getElementById('btnInforme');
+  try{
+    const enPc = isAdmin && !!window.showDirectoryPicker;
+    let conPermiso = false;
+    if(enPc){
+      // El permiso se pide AHORA, al tocar el botón: después de guardar, Chrome ya no deja pedirlo
+      if(!PC.raiz){ const h = await pcKvGet('carpetaPc'); if(h) PC.raiz = h; }
+      if(PC.raiz){
+        let reloj;
+        conPermiso = await Promise.race([pcPermiso(), new Promise(r => { reloj = setTimeout(() => r(false), PC_ESPERA_PERMISO_MS); })]);
+        clearTimeout(reloj);
+      }
+    }
+    if(await saveRecord({ informe: true }) !== 'informe') return;
+    if(!enPc){ showToast('Informe creado ✓ — en el computador usa «Guardar en las carpetas del PC»'); return; }
+    if(!conPermiso){
+      alert('Informe creado en la app ✓, pero NO se guardó en las carpetas del PC.\n\n' + (PC.raiz ? 'Chrome no dio permiso para la carpeta.' : 'Todavía no has elegido la carpeta del año.') + '\nEn Admin → «Guardar en las carpetas del PC», pulsa «Elegir carpeta del año…» y después vuelve a pulsar «Crear informe».');
+      return;
+    }
+    boton.disabled = true; boton.textContent = '⏳ Guardando en el PC…';
+    try{
+      const r = await pcGuardarInforme(window.editingId);
+      alert(r.ok ? 'Informe creado ✓\n\nGuardado en:\n' + r.carpeta + '\n' + r.archivo : 'Informe creado en la app ✓, pero NO se guardó en las carpetas del PC.\n\n' + r.motivo);
+    }catch(e){
+      console.error(e);
+      alert('Informe creado en la app ✓, pero NO se pudo guardar en el PC:\n' + (e.message || e) + '\n\nVuelve a pulsar «Crear informe» para reintentar.');
+    }
+  }finally{
+    _creandoInforme = false; boton.disabled = false; boton.textContent = '📄 Crear informe';
+  }
 }
 document.getElementById('btnInforme').addEventListener('click', crearInforme);
 // Cancelar: descarta lo que hay en pantalla sin guardar y deja el formulario en blanco
@@ -2197,7 +2231,7 @@ async function printRecord(id){
   abrirOpcionesImpresion(_recImprimir);
 }
 // Cambia cada vez que se publica una versión nueva: sirve para comprobar que el tablet/navegador ya la está usando
-const APP_VERSION = '2026-11-27 · botón Crear informe';
+const APP_VERSION = '2026-11-27 · informe directo a la carpeta';
 function abrirOpcionesImpresion(rec){
   document.getElementById('poVersion').textContent = 'Versión de la app: ' + APP_VERSION;
   const nFotos = (rec.fotos || []).length;
@@ -2376,6 +2410,90 @@ async function pcPermiso(){
   }
   return true;
 }
+// Carpetas de OT que guardan cada trabajo en una subcarpeta por mes («Mayo», «Noviembre»…): el informe va en la del mes más reciente.
+// Se mira el NOMBRE del mes y no la fecha de los archivos (copiar o editar un archivo antiguo le cambia la fecha). «Editadas» no es un mes.
+const PC_MESES = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+function pcMesDe(nombre){
+  const t = ' ' + String(nombre || '').toUpperCase().replace(/SETIEMBRE/g, 'SEPTIEMBRE').replace(/[^A-Z0-9]+/g, ' ') + ' ';
+  const i = PC_MESES.findIndex(m => t.includes(' ' + m + ' '));
+  if(i < 0) return null;
+  const anio = (t.match(/ (20\d\d) /) || [])[1];
+  return { mes: i + 1, anio: anio ? +anio : 0 };
+}
+// De la más reciente a la más antigua
+async function pcSubcarpetasMes(dir, anioCarpeta){
+  const out = [];
+  for await (const [n, h] of dir.entries()){
+    if(h.kind !== 'directory') continue;
+    const m = pcMesDe(n); if(m) out.push({ nombre: n, handle: h, mes: m.mes, orden: (m.anio || +anioCarpeta || 0) * 100 + m.mes });
+  }
+  return out.sort((a, b) => b.orden - a.orden || a.nombre.localeCompare(b.nombre));
+}
+// Las carpetas de esa OT que están organizadas por mes
+async function pcCarpetasPorMes(lista, anio){
+  const out = [];
+  for(const c of lista){ const subs = await pcSubcarpetasMes(c.handle, anio); if(subs.length) out.push({ ...c, subs }); }
+  return out;
+}
+const pcDestinoEn = (c, sub) => ({ carpetaHandle: sub ? sub.handle : c.handle, carpetaNombre: c.nombre + (sub ? ' / ' + sub.nombre : ''), carpetaCliente: c.cliente });
+const pcRuta = (c) => (c.cliente ? c.cliente + ' / ' : '') + c.nombre;
+// ¿Hay en la carpeta algo más que los informes que guardó la app?
+async function pcTieneContenidoPropio(dir){
+  for await (const [n, h] of dir.entries()){ if(h.kind === 'directory' || !/\((tablet|t)\)( \(versión anterior\))?\.pdf$/i.test(n)) return true; }
+  return false;
+}
+function pcElegirEntre(ot, lista){
+  const r = prompt(`Hay ${lista.length} carpetas para la OT ${ot}. ¿En cuál guardo el informe? Escribe el número:\n\n` + lista.map((c, i) => `${i + 1}) ${pcRuta(c)}`).join('\n'));
+  return lista[parseInt(r, 10) - 1] || null;
+}
+// Guarda el informe PDF de UNA OT en su carpeta. Devuelve {ok, carpeta, archivo} o {ok:false, motivo}.
+async function pcGuardarInforme(id){
+  if(PC.ocupado) return { ok: false, motivo: 'Ya se están guardando otras OT en el PC. Espera a que termine y vuelve a pulsar «Crear informe».' };
+  PC.ocupado = true;
+  try{
+    const { numeros, clientes, carpetas } = await pcEscanear(PC.raiz); PC.clientes = clientes;
+    const { data: lista, error } = await api('/resumen');
+    if(error) throw new Error(error.message || 'no se pudo consultar la lista de OT');
+    const yo = (lista || []).find(r => String(r.id) === String(id));
+    if(!yo) throw new Error('no encontré la OT en la lista');
+    const anio = (PC.raiz.name.match(/(20\d\d)/) || [])[1], anioOt = String(yo.fecha || '').slice(0, 4);
+    if(anio && anioOt !== anio) return { ok: false, motivo: `El informe es de ${anioOt || 'una fecha sin año'} y la carpeta elegida es «${PC.raiz.name}». Elige la carpeta de ese año en «Guardar en las carpetas del PC».` };
+    pcAprenderAlias((lista || []).filter(r => !anio || String(r.fecha || '').slice(0, 4) === anio), carpetas);
+    const ot = String(yo.ot);
+    const iguales = (lista || []).filter(r => String(r.ot) === ot && String(r.fecha || '').slice(0, 4) === anioOt)
+      .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || String(a.id).localeCompare(String(b.id)));
+    const todas = carpetas.get(ot) || [];
+    const conMes = await pcCarpetasPorMes(todas, anio);
+    let destino = null, nueva = null;
+    if(conMes.length){
+      const c = conMes.length === 1 ? conMes[0] : pcElegirEntre(ot, conMes);
+      if(!c) return { ok: false, motivo: 'No elegiste ninguna carpeta.' };
+      // La más reciente. Excepción: si en la app hay un informe más nuevo de esta OT, este es uno antiguo y va en la carpeta de su mes (si existe)
+      const hayMasNuevo = iguales.some(r => String(r.fecha || '') > String(yo.fecha || ''));
+      const suya = hayMasNuevo ? c.subs.find(x => x.mes === +String(yo.fecha || '').slice(5, 7)) : null;
+      destino = pcDestinoEn(c, suya || c.subs[0]);
+    }else if(!todas.length){
+      nueva = { ...yo, repetida: false };
+    }else if(iguales.length > 1 && iguales.findIndex(r => String(r.id) === String(id)) >= todas.length){
+      nueva = { ...yo, repetida: true };   // mismo número usado otra vez en el año y todavía sin carpeta propia: no se toca la existente
+    }else{
+      const propias = [];
+      for(const c of todas) if(await pcTieneContenidoPropio(c.handle)) propias.push(c);
+      const opciones = propias.length ? propias : todas;
+      const c = opciones.length === 1 ? opciones[0] : pcElegirEntre(ot, opciones);
+      if(!c) return { ok: false, motivo: 'No elegiste ninguna carpeta.' };
+      destino = pcDestinoEn(c, null);
+    }
+    const { data } = await api('/ingresos/' + id + '?join=full');
+    const archivo = pcNombreInforme(data || yo);
+    if(nueva){
+      const r = await pcGuardarOT(nueva);
+      return { ok: true, carpeta: r.carpeta, archivo };
+    }
+    await pcGuardarOT({ ...yo, actualizar: true, ...destino });
+    return { ok: true, carpeta: (destino.carpetaCliente ? destino.carpetaCliente + ' / ' : '') + destino.carpetaNombre, archivo };
+  }finally{ PC.ocupado = false; pcPintarCarpeta(); }
+}
 // ¿La OT está guardada solo como avance? (las anteriores a este cambio no tienen la marca y siguen como siempre)
 const pcEsAvance = (data) => !!(data && data.electrica && data.electrica.estadoInforme === 'avance');
 // Quita de la lista las OT en avance. Solo se consultan las que se han guardado desde la app (las que tienen fecha de modificación).
@@ -2490,7 +2608,7 @@ async function pcBuscar(){
       rows.sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || String(a.id).localeCompare(String(b.id)));
       const yaGuardadas = numeros.get(ot) || 0;
       rows.slice(yaGuardadas).forEach(r => PC.nuevas.push({ ...r, repetida: yaGuardadas > 0 }));
-      if(yaGuardadas === 1) candidatasSinPdf.push({ fila: rows[0], carpeta: carpetas.get(ot)[0] });
+      if(yaGuardadas >= 1) candidatasSinPdf.push({ fila: rows[0], carpeta: carpetas.get(ot)[0], ot, rows, todas: carpetas.get(ot) });
     });
     // OT cuya carpeta ya existe (p. ej. solo con fotos) pero sin ningún informe PDF: se ofrece agregar solo el PDF
     pcEstado(`Revisando ${candidatasSinPdf.length} carpetas de OT que ya existen…`);
@@ -2499,8 +2617,18 @@ async function pcBuscar(){
       while(sig < candidatasSinPdf.length){
         const c = candidatasSinPdf[sig++];
         try{
-          const pdfMs = await pcPdfMasNuevo(c.carpeta.handle);
-          const dest = { carpetaHandle: c.carpeta.handle, carpetaNombre: c.carpeta.nombre, carpetaCliente: c.carpeta.cliente };
+          let dest;
+          const conMes = await pcCarpetasPorMes(c.todas, anio);
+          if(conMes.length === 1){
+            // Carpeta organizada por mes: guarda todos los trabajos de esa OT; solo cuenta el informe más nuevo, en el mes más reciente
+            PC.nuevas = PC.nuevas.filter(x => String(x.ot) !== c.ot);
+            c.fila = c.rows.slice().sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')) || String(b.created_at || '').localeCompare(String(a.created_at || '')))[0];
+            dest = pcDestinoEn(conMes[0], conMes[0].subs[0]);
+          }else{
+            if(c.todas.length !== 1) continue;   // varias carpetas del mismo número: se resuelve como siempre
+            dest = pcDestinoEn(c.carpeta, null);
+          }
+          const pdfMs = await pcPdfMasNuevo(dest.carpetaHandle);
           if(!pdfMs){
             if(c.motivo = await pcOtTieneInforme(c.fila.id)) PC.nuevas.push({ ...c.fila, completar: true, motivoInforme: c.motivo, ...dest });
           }else if(c.fila.updated_at){
@@ -2701,10 +2829,12 @@ async function pcActualizarManual(){
     if(!filas.length){ pcEstado(`La OT ${num} no está en la app.`, 'err'); return; }
     const cs = carpetas.get(num) || [];
     if(!cs.length){ pcEstado(`La OT ${num} todavía no tiene carpeta en «${PC.raiz.name}». Usa «Buscar OT nuevas» para crearla con su informe y sus fotos.`, 'err'); return; }
-    const c = cs[0];
+    const conMes = await pcCarpetasPorMes(cs, (PC.raiz.name.match(/(20\d\d)/) || [])[1]);
+    const c = conMes[0] || cs[0];
+    const dest = pcDestinoEn(c, conMes.length ? c.subs[0] : null);
     pcEstado(`Guardando el informe actualizado de la OT ${num}…`);
-    await pcGuardarOT({ ...filas[0], actualizar: true, carpetaHandle: c.handle, carpetaNombre: c.nombre, carpetaCliente: c.cliente });
-    pcEstado(`Listo ✓ — informe actualizado de la OT ${num} guardado en «${(c.cliente ? c.cliente + ' / ' : '') + c.nombre}».` + (cs.length > 1 ? `\n(Ojo: hay ${cs.length} carpetas con ese número en el año; se usó la primera.)` : ''));
+    await pcGuardarOT({ ...filas[0], actualizar: true, ...dest });
+    pcEstado(`Listo ✓ — informe actualizado de la OT ${num} guardado en «${(dest.carpetaCliente ? dest.carpetaCliente + ' / ' : '') + dest.carpetaNombre}».` + (cs.length > 1 ? `\n(Ojo: hay ${cs.length} carpetas con ese número en el año; se usó la primera.)` : ''));
   }catch(e){ console.error(e); pcEstado('Error: ' + (e.message || e), 'err'); }
   finally{ PC.ocupado = false; pcPintarCarpeta(); }
 }
