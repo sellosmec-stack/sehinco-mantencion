@@ -2174,7 +2174,7 @@ async function printRecord(id){
   abrirOpcionesImpresion(_recImprimir);
 }
 // Cambia cada vez que se publica una versión nueva: sirve para comprobar que el tablet/navegador ya la está usando
-const APP_VERSION = '2026-11-19 · actualizar sin pisar el informe antiguo';
+const APP_VERSION = '2026-11-27 · aviso al buscar OT nuevas';
 function abrirOpcionesImpresion(rec){
   document.getElementById('poVersion').textContent = 'Versión de la app: ' + APP_VERSION;
   const nFotos = (rec.fotos || []).length;
@@ -2339,7 +2339,18 @@ async function pcElegir(){
 }
 async function pcPermiso(){
   if(!PC.raiz) return false;
-  if(PC.raiz.requestPermission){ const p = await PC.raiz.requestPermission({ mode: 'readwrite' }); if(p !== 'granted'){ pcEstado('Sin permiso para escribir en la carpeta. Vuelve a pulsar el botón y acepta.', 'err'); return false; } }
+  if(PC.raiz.requestPermission){
+    // Siempre se muestra qué está pasando: si Chrome no responde o falla, el botón no puede quedarse mudo
+    pcEstado('Pidiendo permiso para usar la carpeta… Si Chrome muestra un aviso, pulsa «Permitir».');
+    const aviso = setTimeout(() => pcEstado('Chrome todavía no responde. Si no ves ningún aviso, recarga la página (F5), pulsa «Elegir carpeta del año…», elige la carpeta otra vez y vuelve a buscar.', 'err'), 12000);
+    try{
+      const p = await PC.raiz.requestPermission({ mode: 'readwrite' });
+      if(p !== 'granted'){ pcEstado('Sin permiso para escribir en la carpeta. Vuelve a pulsar el botón y acepta.', 'err'); return false; }
+    }catch(e){
+      console.error(e); pcEstado('No se pudo usar la carpeta guardada (' + (e.message || e.name) + '). Pulsa «Elegir carpeta del año…», elígela otra vez y vuelve a buscar.', 'err'); return false;
+    }finally{ clearTimeout(aviso); }
+    pcEstado('');
+  }
   return true;
 }
 // Qué hay en la carpeta del año: números de OT ya guardados y carpetas de cliente
