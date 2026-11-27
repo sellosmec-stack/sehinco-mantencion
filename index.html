@@ -228,6 +228,15 @@
   .fab-save:active{ transform:scale(.96); }
   .fab-save:disabled{ background:var(--surface-3); color:var(--text-faint); box-shadow:none; }
   .fab-save svg{ width:18px; height:18px; }
+  #formView{ padding-bottom:70px; }   /* lugar para el boton Crear informe: no tapa el final del formulario */
+  .fab-informe{
+    position:fixed; right:16px; bottom:calc(134px + env(safe-area-inset-bottom)); z-index:45;
+    display:flex; align-items:center; gap:7px; padding:13px 18px; border-radius:var(--radius-full);
+    background:#1f8a4c; color:#fff; border:none; font-family:var(--sans); font-weight:800; font-size:14.5px;
+    box-shadow:0 8px 22px rgba(31,138,76,.35); cursor:pointer; transition:transform .12s;
+  }
+  .fab-informe:active{ transform:scale(.96); }
+  .fab-informe:disabled{ background:var(--surface-3); color:var(--text-faint); box-shadow:none; }
   .fab-cancel{
     position:fixed; right:148px; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:45;
     display:flex; align-items:center; gap:6px; padding:14px 18px; border-radius:var(--radius-full);
@@ -403,7 +412,7 @@
     .list-toolbar, .list-filters{ max-width:920px; margin:0 auto; }
     .grid2{ grid-template-columns:repeat(3, 1fr); }
     .tabbar{ padding-left:18vw; padding-right:18vw; }
-    .fab-save{ right:calc(18vw + 16px); }
+    .fab-save, .fab-informe{ right:calc(18vw + 16px); }
     .fab-cancel{ right:calc(18vw + 148px); }
   }
   @media (min-width:1100px){
@@ -412,7 +421,7 @@
     .foto-slots{ grid-template-columns:repeat(4, 1fr); }
     .section-nav{ flex-wrap:wrap; overflow-x:visible; }
     .tabbar{ padding-left:26vw; padding-right:26vw; }
-    .fab-save{ right:calc(26vw + 16px); }
+    .fab-save, .fab-informe{ right:calc(26vw + 16px); }
     .fab-cancel{ right:calc(26vw + 148px); }
   }
   /* En pantallas grandes, evita que el switch de Motor/Bomba y las tarjetas se vean estirados */
@@ -972,6 +981,7 @@
 
 <!-- ============================================================ NAVEGACIÓN INFERIOR ============================================================ -->
 <button class="fab-cancel" id="btnCancelar" type="button">✕ Cancelar</button>
+<button class="fab-informe" id="btnInforme" type="button">📄 Crear informe</button>
 <button class="fab-save" id="btnSave"><span class="fab-icon"></span><span id="btnSaveLabel">Guardar</span></button>
 
 <nav class="tabbar">
@@ -1399,7 +1409,9 @@ async function copiarDatosDeOt(id){
 }
 
 let _fechaCargada = '';   // fecha del informe tal como se abrió para editar (para detectar que se está actualizando uno antiguo)
-async function saveRecord(){
+// «Guardar» deja la OT como AVANCE (todavía no hay informe). Solo «Crear informe» la marca como terminada.
+async function saveRecord(opciones){
+  const esInforme = !!(opciones && opciones.informe === true);   // el clic en «Guardar» llega con un evento: eso no es «crear informe»
   if(!validarFormulario()) return;
   let creoNueva = false;
   if(window.editingId && _fechaCargada){
@@ -1415,7 +1427,8 @@ async function saveRecord(){
   const btn = document.getElementById('btnSave');
   const label = document.getElementById('btnSaveLabel');
   const textoOriginal = label.textContent;
-  btn.disabled = true;
+  const btnInf = document.getElementById('btnInforme');
+  btn.disabled = true; btnInf.disabled = true;
   label.textContent = 'Guardando...';
   const rec = collectRecord(window.editingId);
   const payload = {
@@ -1434,7 +1447,7 @@ async function saveRecord(){
       const dupMismoAnio = (dup || []).filter(d => !d.fecha || !rec.fecha || String(d.fecha).slice(0, 4) === String(rec.fecha).slice(0, 4));   // el mismo número en otro año es normal
       if(dupMismoAnio.length){
         if(!confirm(`Ya existe otro registro con la OT ${rec.ot}. ¿Guardar de todas formas?`)){
-          btn.disabled = false; label.textContent = textoOriginal;
+          btn.disabled = false; btnInf.disabled = false; label.textContent = textoOriginal;
           return;
         }
       }
@@ -1453,6 +1466,9 @@ async function saveRecord(){
         observacion: c.observacion
     }));
     const repuestosPayload = rec.repuestos.map(r => ({ componente: r.componente, descripcion: r.descripcion, cantidad: r.cantidad }));
+    // Un informe que recién nace de uno antiguo todavía no tiene sus fotos: queda como avance aunque se haya pulsado «Crear informe»
+    const terminado = esInforme && !creoNueva;
+    payload.electrica = { ...rec.electrica, estadoInforme: terminado ? 'creado' : 'avance' };
     const { data: guardado, error } = await api('/guardar', { method:'POST', body: {
       id: window.editingId || undefined, ingreso: payload, componentes: componentesPayload, repuestos: repuestosPayload
     }});
@@ -1462,18 +1478,25 @@ async function saveRecord(){
     ocultarAvisoOt();
     await refreshFotos(ingresoId);
     _fechaCargada = (rec.fecha || '').slice(0, 10);
-    showToast(creoNueva ? 'Informe NUEVO guardado ✓ (el anterior quedó intacto)' : 'Registro guardado ✓');
+    showToast(creoNueva ? (esInforme ? 'Guardado como OT NUEVA (la anterior quedó intacta). Revisa las fotos y pulsa otra vez «Crear informe».' : 'Avance guardado como OT NUEVA ✓ (la anterior quedó intacta)')
+      : terminado ? 'Informe creado ✓' : 'Avance guardado ✓ — cuando esté terminado pulsa «Crear informe»');
     await refreshCount();
     if(creoNueva) ofrecerFotosDeVersiones();
+    return terminado ? 'informe' : 'avance';
   }catch(e){
     console.error(e);
     showToast('Error al guardar: ' + (e.message || 'revisa tu conexión e inténtalo de nuevo'), 'error');
   }finally{
-    btn.disabled = false;
+    btn.disabled = false; btnInf.disabled = false;
     label.textContent = textoOriginal;
   }
 }
 document.getElementById('btnSave').addEventListener('click', saveRecord);
+// «Crear informe»: guarda la OT como terminada y abre las opciones del informe (imprimir o guardar como PDF)
+async function crearInforme(){
+  if(await saveRecord({ informe: true }) === 'informe') await printRecord(window.editingId);
+}
+document.getElementById('btnInforme').addEventListener('click', crearInforme);
 // Cancelar: descarta lo que hay en pantalla sin guardar y deja el formulario en blanco
 document.getElementById('btnCancelar').addEventListener('click', () => {
   const editando = !!window.editingId;
@@ -2174,7 +2197,7 @@ async function printRecord(id){
   abrirOpcionesImpresion(_recImprimir);
 }
 // Cambia cada vez que se publica una versión nueva: sirve para comprobar que el tablet/navegador ya la está usando
-const APP_VERSION = '2026-11-27 · aviso al buscar OT nuevas';
+const APP_VERSION = '2026-11-27 · botón Crear informe';
 function abrirOpcionesImpresion(rec){
   document.getElementById('poVersion').textContent = 'Versión de la app: ' + APP_VERSION;
   const nFotos = (rec.fotos || []).length;
@@ -2353,6 +2376,20 @@ async function pcPermiso(){
   }
   return true;
 }
+// ¿La OT está guardada solo como avance? (las anteriores a este cambio no tienen la marca y siguen como siempre)
+const pcEsAvance = (data) => !!(data && data.electrica && data.electrica.estadoInforme === 'avance');
+// Quita de la lista las OT en avance. Solo se consultan las que se han guardado desde la app (las que tienen fecha de modificación).
+async function pcQuitarAvances(lista){
+  const fuera = new Set(); let sig = 0;
+  await Promise.all(Array.from({ length: 6 }, async () => {
+    while(sig < lista.length){
+      const f = lista[sig++]; if(!f.updated_at) continue;
+      const { data } = await api('/ingresos/' + f.id);
+      if(pcEsAvance(data)) fuera.add(f);
+    }
+  }));
+  return { quedan: lista.filter(f => !fuera.has(f)), avances: fuera.size };
+}
 // Qué hay en la carpeta del año: números de OT ya guardados y carpetas de cliente
 async function pcEscanear(raiz){
   const numeros = new Map(), clientes = new Map(), carpetas = new Map();   // numeros: nº de OT -> cuántas carpetas de esa OT hay (pueden repetirse en el año)
@@ -2474,6 +2511,9 @@ async function pcBuscar(){
         }catch(e){ console.warn('no se pudo revisar', c.carpeta.nombre, e); }
       }
     }));
+    const sinAvances = await pcQuitarAvances(PC.nuevas);
+    PC.nuevas = sinAvances.quedan;
+    const notaAvances = sinAvances.avances ? `\n(${sinAvances.avances} OT guardadas como avance no se proponen: aparecerán cuando pulses «Crear informe» en ellas.)` : '';
     PC.nuevas.sort((a, b) => String(b.ot).localeCompare(String(a.ot), 'es', { numeric: true }));
     document.getElementById('pcLista').innerHTML = PC.nuevas.map((r, i) => {
       const cli = (r.cliente || '').trim() || 'SIN CLIENTE', c = pcCarpetaDeCliente(cli);
@@ -2484,6 +2524,7 @@ async function pcBuscar(){
     document.getElementById('pcGuardar').hidden = !PC.nuevas.length;
     document.getElementById('pcGuardar').textContent = `Guardar ${PC.nuevas.length} OT`;
     pcEstado(PC.nuevas.length ? `${PC.nuevas.length} OT de la app no están en la carpeta. Marca las que quieras y pulsa «Guardar».` : `Todo al día ✓ — las OT de la app${anio ? ' de ' + anio : ''} ya están en la carpeta.`);
+    if(notaAvances) pcEstado(document.getElementById('pcEstado').textContent + notaAvances);
   }catch(e){ console.error(e); pcEstado('Error: ' + (e.message || e), 'err'); }
   finally{ PC.ocupado = false; pcPintarCarpeta(); }
 }
@@ -2572,6 +2613,7 @@ async function pcEscribir(dir, nombre, blob){
 async function pcGuardarOT(fila){
   const { data, error } = await api('/ingresos/' + fila.id + '?join=full');
   if(error || !data) throw new Error((error && error.message) || 'no se pudo leer la OT');
+  if(pcEsAvance(data)) throw new Error('está guardada como avance: ábrela y pulsa «Crear informe» antes de guardarla en el PC');
   if(fila.actualizar){   // la carpeta ya tiene informe pero la OT cambió: se guarda el actualizado en la MISMA carpeta
     const pdf = await pcGenerarPdf(escRec(mapFromSupabase(data)), pcFotosParaInforme(data.fotos));
     const nombre = pcNombreInforme(data);
@@ -3337,6 +3379,7 @@ function switchView(which){
   document.getElementById('listView').style.display = isForm ? 'none' : 'block';
   document.getElementById('btnSave').style.display = isForm ? 'flex' : 'none';
   document.getElementById('btnCancelar').style.display = isForm ? 'flex' : 'none';
+  document.getElementById('btnInforme').style.display = isForm ? 'flex' : 'none';
   document.getElementById('navNew').classList.toggle('active', isForm);
   document.getElementById('navList').classList.toggle('active', !isForm);
   (isForm ? document.getElementById('formView') : document.getElementById('listView')).classList.add('view-fade');
